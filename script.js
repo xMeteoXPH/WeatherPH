@@ -1319,6 +1319,7 @@ if (document.getElementById('map')) {
       provinceLayer = L.geoJSON(data, {
         style: styleProvince,
         onEachFeature: function(feature, layer) {
+          layer.options.className = (layer.options.className || '') + ' leaflet-province-outline';
           layer.on('click', function(e) {
             if (magicFillActive && !drawingHighlight) {
               const name = feature.properties && feature.properties.NAME_1;
