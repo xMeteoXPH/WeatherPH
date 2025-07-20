@@ -1287,7 +1287,7 @@ if (document.getElementById('map')) {
     if (filledProvinces[name]) {
       return {
         color: filledProvinces[name],
-        weight: 2,
+        weight: 1,
         fill: true,
         fillColor: filledProvinces[name],
         fillOpacity: 0.7,
