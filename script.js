@@ -1286,8 +1286,8 @@ if (document.getElementById('map')) {
     const name = feature.properties && feature.properties.NAME_1;
     if (filledProvinces[name]) {
       return {
-        color: filledProvinces[name],
-        weight: 1,
+        color: '#444',
+        weight: 0.5,
         fill: true,
         fillColor: filledProvinces[name],
         fillOpacity: 0.7,
@@ -1295,8 +1295,8 @@ if (document.getElementById('map')) {
       };
     } else {
       return {
-        color: '#eee',
-        weight: 0.7,
+        color: '#444',
+        weight: 0.5,
         fill: true,
         fillColor: 'rgba(0,0,0,0)',
         fillOpacity: 0.1,
