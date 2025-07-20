@@ -1202,8 +1202,9 @@ if (document.getElementById('map')) {
 
   // --- Province-aware Magic Fill Tool ---
   let provinceLayer = null;
-  let filledProvinces = {};
+  let filledProvinces = {}; // { provinceName: color }
   let magicFillActive = false;
+  let selectedFillColor = '#ffe44c'; // Default yellow
 
   // Create Magic Fill toggle button
   const magicFillBtn = document.createElement('button');
@@ -1215,14 +1216,61 @@ if (document.getElementById('map')) {
   }
   magicFillBtn.onclick = function() {
     magicFillActive = !magicFillActive;
-    magicFillBtn.style.background = magicFillActive ? '#ffe44c' : '';
+    magicFillBtn.style.background = magicFillActive ? selectedFillColor : '';
     magicFillBtn.style.color = magicFillActive ? '#222' : '';
     if (magicFillActive) {
       map.getContainer().style.cursor = 'cell';
+      colorPickerRow.style.display = '';
     } else {
       map.getContainer().style.cursor = '';
+      colorPickerRow.style.display = 'none';
     }
   };
+
+  // --- Rainfall Color Picker Buttons ---
+  const colorPickerRow = document.createElement('div');
+  colorPickerRow.style.display = 'none';
+  colorPickerRow.style.margin = '6px 0';
+  colorPickerRow.style.gap = '8px';
+  colorPickerRow.style.display = 'flex';
+  colorPickerRow.style.alignItems = 'center';
+
+  const yellowBtn = document.createElement('button');
+  yellowBtn.textContent = 'Yellow (50-100mm)';
+  yellowBtn.style.background = '#ffe44c';
+  yellowBtn.style.color = '#222';
+  yellowBtn.style.border = '1px solid #aaa';
+  yellowBtn.style.marginRight = '4px';
+  yellowBtn.onclick = function() {
+    selectedFillColor = '#ffe44c';
+    magicFillBtn.style.background = magicFillActive ? selectedFillColor : '';
+  };
+
+  const orangeBtn = document.createElement('button');
+  orangeBtn.textContent = 'Orange (100-200mm)';
+  orangeBtn.style.background = '#ffb84c';
+  orangeBtn.style.color = '#222';
+  orangeBtn.style.border = '1px solid #aaa';
+  orangeBtn.style.marginRight = '4px';
+  orangeBtn.onclick = function() {
+    selectedFillColor = '#ffb84c';
+    magicFillBtn.style.background = magicFillActive ? selectedFillColor : '';
+  };
+
+  const redBtn = document.createElement('button');
+  redBtn.textContent = 'Red (200mm+)';
+  redBtn.style.background = '#e74c3c';
+  redBtn.style.color = '#fff';
+  redBtn.style.border = '1px solid #aaa';
+  redBtn.onclick = function() {
+    selectedFillColor = '#e74c3c';
+    magicFillBtn.style.background = magicFillActive ? selectedFillColor : '';
+  };
+
+  colorPickerRow.appendChild(yellowBtn);
+  colorPickerRow.appendChild(orangeBtn);
+  colorPickerRow.appendChild(redBtn);
+  if (controlsRow) controlsRow.appendChild(colorPickerRow);
 
   // Create Clear Province Fills button
   const clearProvinceFillsBtn = document.createElement('button');
@@ -1238,10 +1286,10 @@ if (document.getElementById('map')) {
     const name = feature.properties && feature.properties.NAME_1;
     if (filledProvinces[name]) {
       return {
-        color: '#ffe44c',
+        color: filledProvinces[name],
         weight: 2,
         fill: true,
-        fillColor: '#ffe44c',
+        fillColor: filledProvinces[name],
         fillOpacity: 0.7,
         opacity: 0.9
       };
@@ -1249,7 +1297,9 @@ if (document.getElementById('map')) {
       return {
         color: '#eee',
         weight: 0.7,
-        fill: false,
+        fill: true,
+        fillColor: 'rgba(0,0,0,0)',
+        fillOpacity: 0.1,
         opacity: 0.9
       };
     }
@@ -1272,7 +1322,7 @@ if (document.getElementById('map')) {
           layer.on('click', function(e) {
             if (magicFillActive && !drawingHighlight) {
               const name = feature.properties && feature.properties.NAME_1;
-              filledProvinces[name] = true;
+              filledProvinces[name] = selectedFillColor;
               provinceLayer.setStyle(styleProvince);
               clearProvinceFillsBtn.style.display = '';
               L.DomEvent.stopPropagation(e);
