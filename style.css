@@ -523,8 +523,8 @@ html, body {
   margin: 0 !important;
 } 
 
-/* Force province outlines to be thin and dark gray */
+/* Force province outlines to be very thin and dark gray */
 .leaflet-interactive {
   stroke: #444 !important;
-  stroke-width: 1px !important;
+  stroke-width: 0.5px !important;
 } 
