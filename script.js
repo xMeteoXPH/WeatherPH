@@ -822,8 +822,8 @@ if (document.getElementById('map')) {
       rainviewerActive = true;
       fetchRainviewerFrames(() => {
         rainviewerFrameIdx = 0;
-        showRainviewerAnim();
-      });
+          showRainviewerAnim();
+        });
     }
   });
   map.on('overlayremove', function(e) {
@@ -1313,7 +1313,7 @@ if (document.getElementById('map')) {
 
   clearProvinceFillsBtn.onclick = resetProvinceFills;
 
-  fetch('ph-provinces.geojson')
+  fetch('ph-provinces.json')
     .then(res => res.json())
     .then(data => {
       provinceLayer = L.geoJSON(data, {
