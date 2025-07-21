@@ -837,6 +837,11 @@ if (document.getElementById('map')) {
       if (provinceLayer && !rainfallAdvisoryLayerGroup.hasLayer(provinceLayer)) {
         rainfallAdvisoryLayerGroup.addLayer(provinceLayer);
       }
+      // Show rainfall legend, hide typhoon legend
+      var rainfallLegend = document.getElementById('rainfall-legend-box');
+      var typhoonLegend = document.getElementById('map-legend-box');
+      if (rainfallLegend) rainfallLegend.style.display = '';
+      if (typhoonLegend) typhoonLegend.style.display = 'none';
     }
   });
   map.on('overlayremove', function(e) {
@@ -846,6 +851,11 @@ if (document.getElementById('map')) {
       if (provinceLayer && rainfallAdvisoryLayerGroup.hasLayer(provinceLayer)) {
         rainfallAdvisoryLayerGroup.removeLayer(provinceLayer);
       }
+      // Hide rainfall legend, show typhoon legend
+      var rainfallLegend = document.getElementById('rainfall-legend-box');
+      var typhoonLegend = document.getElementById('map-legend-box');
+      if (rainfallLegend) rainfallLegend.style.display = 'none';
+      if (typhoonLegend) typhoonLegend.style.display = '';
     }
   });
 
