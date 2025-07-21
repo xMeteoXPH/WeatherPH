@@ -1414,39 +1414,104 @@ if (document.getElementById('map')) {
       console.warn('Province boundary file missing or invalid:', err);
     });
 
-  // --- NASA GIBS Satellite Imagery (latest only, no animation) ---
-  let gibsLayer = null;
+  // --- NASA GIBS Animated Satellite Imagery (Past Hour) ---
+  let gibsAnimLayer = null;
+  let gibsAnimTimer = null;
+  let gibsAnimFrames = [];
+  let gibsAnimIdx = 0;
 
-  function getLatestGibsDate() {
-    const today = new Date();
-    const yyyy = today.getUTCFullYear();
-    const mm = String(today.getUTCMonth() + 1).padStart(2, '0');
-    const dd = String(today.getUTCDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
+  // Helper: get recent timestamps (every 10 min for past hour)
+  function getRecentGibsTimestamps(minutesBack = 60, interval = 10) {
+    const now = new Date();
+    now.setUTCMinutes(Math.floor(now.getUTCMinutes() / interval) * interval, 0, 0);
+    const timestamps = [];
+    for (let i = minutesBack; i >= 0; i -= interval) {
+      const d = new Date(now.getTime() - i * 60000);
+      const iso = d.toISOString().replace(/\.[0-9]{3}Z$/, 'Z');
+      timestamps.push(iso);
+    }
+    return timestamps;
   }
 
-  function showGibsLatest() {
-    if (gibsLayer) map.removeLayer(gibsLayer);
-    const date = getLatestGibsDate();
-    gibsLayer = L.tileLayer(
-      `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/${date}/250m/{z}/{y}/{x}.jpg`,
+  // Try GOES-East-ABI-TrueColor first, fallback to VIIRS if not available
+  const gibsLayerId = 'GOES-East-ABI-TrueColor';
+  const gibsFallbackLayerId = 'VIIRS_SNPP_CorrectedReflectance_TrueColor';
+
+  function makeGibsTileLayer(layerId, time) {
+    return L.tileLayer(
+      `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layerId}/${time}/250m/{z}/{y}/{x}.jpg`,
       { attribution: 'NASA GIBS', maxZoom: 9, opacity: 0.85 }
     );
-    gibsLayer.addTo(map);
   }
 
-  function removeGibsLayer() {
-    if (gibsLayer) { map.removeLayer(gibsLayer); gibsLayer = null; }
+  // Preload frames and animate
+  function startGibsAnimation() {
+    const timestamps = getRecentGibsTimestamps(60, 10); // past hour, every 10 min
+    gibsAnimFrames = [];
+    let loaded = 0;
+    let tried = 0;
+    // Try to load each frame for GOES-East first
+    timestamps.forEach((ts, idx) => {
+      const layer = makeGibsTileLayer(gibsLayerId, ts);
+      layer.on('tileload', function() {
+        gibsAnimFrames[idx] = layer;
+        loaded++;
+        tried++;
+        if (tried === timestamps.length) finishGibsAnimLoad();
+      });
+      layer.on('tileerror', function() {
+        // Try fallback VIIRS for this timestamp
+        const fallback = makeGibsTileLayer(gibsFallbackLayerId, ts.slice(0,10));
+        fallback.on('tileload', function() {
+          gibsAnimFrames[idx] = fallback;
+          loaded++;
+          tried++;
+          if (tried === timestamps.length) finishGibsAnimLoad();
+        });
+        fallback.on('tileerror', function() {
+          gibsAnimFrames[idx] = null;
+          tried++;
+          if (tried === timestamps.length) finishGibsAnimLoad();
+        });
+        // Try to load fallback
+        fallback.createTile({x:0,y:0,z:0}, () => {});
+      });
+      // Try to load GOES-East
+      layer.createTile({x:0,y:0,z:0}, () => {});
+    });
+    function finishGibsAnimLoad() {
+      // Remove nulls and keep only loaded frames
+      gibsAnimFrames = gibsAnimFrames.filter(f => f);
+      if (gibsAnimFrames.length > 0) {
+        gibsAnimIdx = 0;
+        showGibsAnimFrame(gibsAnimIdx);
+        if (gibsAnimTimer) clearInterval(gibsAnimTimer);
+        gibsAnimTimer = setInterval(() => {
+          gibsAnimIdx = (gibsAnimIdx + 1) % gibsAnimFrames.length;
+          showGibsAnimFrame(gibsAnimIdx);
+        }, 800);
+      }
+    }
   }
-
+  function showGibsAnimFrame(idx) {
+    if (gibsAnimLayer) map.removeLayer(gibsAnimLayer);
+    gibsAnimLayer = gibsAnimFrames[idx];
+    if (gibsAnimLayer) gibsAnimLayer.addTo(map);
+  }
+  function stopGibsAnimation() {
+    if (gibsAnimTimer) clearInterval(gibsAnimTimer);
+    gibsAnimTimer = null;
+    if (gibsAnimLayer) { map.removeLayer(gibsAnimLayer); gibsAnimLayer = null; }
+    gibsAnimFrames = [];
+  }
   map.on('overlayadd', function(e) {
     if (e.name === 'Satellite Imagery') {
-      showGibsLatest();
+      startGibsAnimation();
     }
   });
   map.on('overlayremove', function(e) {
     if (e.name === 'Satellite Imagery') {
-      removeGibsLayer();
+      stopGibsAnimation();
     }
   });
 
