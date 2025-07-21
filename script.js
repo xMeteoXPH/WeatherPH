@@ -1414,7 +1414,7 @@ if (document.getElementById('map')) {
       console.warn('Province boundary file missing or invalid:', err);
     });
 
-  // --- NASA GIBS Animated Satellite Imagery (Past Hour) ---
+  // --- NASA GIBS Animated Satellite Imagery (Past Hour, auto-play) ---
   let gibsAnimLayer = null;
   let gibsAnimTimer = null;
   let gibsAnimFrames = [];
@@ -1444,13 +1444,12 @@ if (document.getElementById('map')) {
     );
   }
 
-  // Preload frames and animate
+  // Preload frames and animate (auto-play)
   function startGibsAnimation() {
     const timestamps = getRecentGibsTimestamps(60, 10); // past hour, every 10 min
     gibsAnimFrames = [];
     let loaded = 0;
     let tried = 0;
-    // Try to load each frame for GOES-East first
     timestamps.forEach((ts, idx) => {
       const layer = makeGibsTileLayer(gibsLayerId, ts);
       layer.on('tileload', function() {
@@ -1473,14 +1472,11 @@ if (document.getElementById('map')) {
           tried++;
           if (tried === timestamps.length) finishGibsAnimLoad();
         });
-        // Try to load fallback
         fallback.createTile({x:0,y:0,z:0}, () => {});
       });
-      // Try to load GOES-East
       layer.createTile({x:0,y:0,z:0}, () => {});
     });
     function finishGibsAnimLoad() {
-      // Remove nulls and keep only loaded frames
       gibsAnimFrames = gibsAnimFrames.filter(f => f);
       if (gibsAnimFrames.length > 0) {
         gibsAnimIdx = 0;
@@ -1504,6 +1500,7 @@ if (document.getElementById('map')) {
     if (gibsAnimLayer) { map.removeLayer(gibsAnimLayer); gibsAnimLayer = null; }
     gibsAnimFrames = [];
   }
+  // Show/hide controls on overlay toggle
   map.on('overlayadd', function(e) {
     if (e.name === 'Satellite Imagery') {
       startGibsAnimation();
@@ -1514,6 +1511,41 @@ if (document.getElementById('map')) {
       stopGibsAnimation();
     }
   });
+  // Hide controls by default
+  if (satelliteControls) satelliteControls.style.display = 'none';
+
+  // --- Satellite Animation Controls ---
+  const satelliteControls = document.getElementById('satellite-controls');
+  const satellitePlayPauseBtn = document.getElementById('satellitePlayPauseBtn');
+  const satelliteFrameTime = document.getElementById('satelliteFrameTime');
+  let gibsAnimPaused = true;
+
+  function updateSatelliteControls() {
+    if (gibsAnimFrames.length > 0 && gibsAnimLayer) {
+      satelliteControls.style.display = '';
+      satellitePlayPauseBtn.textContent = gibsAnimPaused ? '▶' : '❚❚';
+      satelliteFrameTime.textContent = gibsAnimFrames[gibsAnimIdx]?.gibsTimeLabel || '--:--';
+    } else {
+      satelliteControls.style.display = 'none';
+    }
+  }
+  if (satellitePlayPauseBtn) {
+    satellitePlayPauseBtn.onclick = function() {
+      gibsAnimPaused = !gibsAnimPaused;
+      updateSatelliteControls();
+      if (!gibsAnimPaused) {
+        if (gibsAnimTimer) clearInterval(gibsAnimTimer);
+        gibsAnimTimer = setInterval(() => {
+          gibsAnimIdx = (gibsAnimIdx + 1) % gibsAnimFrames.length;
+          showGibsAnimFrame(gibsAnimIdx);
+          updateSatelliteControls();
+        }, 800);
+      } else {
+        if (gibsAnimTimer) clearInterval(gibsAnimTimer);
+        gibsAnimTimer = null;
+      }
+    };
+  }
 
   // --- Pointer Circle Tool ---
   let pointerCircleToolActive = false;
