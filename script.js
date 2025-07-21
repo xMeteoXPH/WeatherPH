@@ -807,23 +807,41 @@ if (document.getElementById('map')) {
 
   // Dummy layer for 'Radar' so it appears in the layer control
   const dummyRainviewerLayer = L.layerGroup();
+  // Dummy layer for Himawari-8 Satellite
+  const dummyHimawariLayer = L.layerGroup();
+  let himawariLayer = null;
 
   // --- Rainfall Advisory LayerGroup (for toggling in layer control) ---
   // We'll use a LayerGroup to hold the provinceLayer once loaded
   const rainfallAdvisoryLayerGroup = L.layerGroup();
   let rainfallAdvisoryLoaded = false;
 
-  // Add layer control for Typhoon Track, Radar, and Rainfall Advisory (as overlays)
+  // --- Himawari-8 Animated Satellite Layer ---
+  function createHimawariLayer() {
+    if (!himawariLayer) {
+      himawariLayer = L.himawariLayer({
+        interval: 10, // minutes between frames
+        frames: 6,    // number of frames to animate
+        level: 4,     // tile grid (4x4)
+        animate: true,
+        opacity: 0.7
+      });
+    }
+    return himawariLayer;
+  }
+
+  // Add layer control for Typhoon Track, Radar, Rainfall Advisory, and Himawari-8 Satellite (as overlays)
   const overlays = {
     'Typhoon Track': typhoonLayerGroup,
     'Radar': dummyRainviewerLayer,
-    'Rainfall Advisory': rainfallAdvisoryLayerGroup
+    'Rainfall Advisory': rainfallAdvisoryLayerGroup,
+    'Himawari-8 Satellite': dummyHimawariLayer
   };
   L.control.layers(baseLayers, overlays, { position: 'topright', collapsed: false }).addTo(map);
 
   typhoonLayerGroup.addTo(map);
 
-  // Listen for overlayadd/overlayremove events to toggle the animated radar and static satellite overlays
+  // Listen for overlayadd/overlayremove events to toggle overlays
   map.on('overlayadd', function(e) {
     if (e.name === 'Radar') {
       rainviewerActive = true;
@@ -833,11 +851,9 @@ if (document.getElementById('map')) {
       });
     }
     if (e.name === 'Rainfall Advisory') {
-      // Add provinceLayer to rainfallAdvisoryLayerGroup if loaded
       if (provinceLayer && !rainfallAdvisoryLayerGroup.hasLayer(provinceLayer)) {
         rainfallAdvisoryLayerGroup.addLayer(provinceLayer);
       }
-      // Show rainfall legend, hide typhoon legend and source box
       var rainfallLegend = document.getElementById('rainfall-legend-box');
       var typhoonLegend = document.getElementById('map-legend-box');
       var sourceBox = document.getElementById('map-source-box');
@@ -847,15 +863,25 @@ if (document.getElementById('map')) {
       if (typhoonLegend) typhoonLegend.style.display = 'none';
       if (sourceBox) sourceBox.style.display = 'none';
     }
+    if (e.name === 'Himawari-8 Satellite') {
+      if (!himawariLayer) {
+        himawariLayer = L.himawariLayer({
+          interval: 10,
+          frames: 6,
+          level: 4,
+          animate: true,
+          opacity: 0.7
+        });
+      }
+      himawariLayer.addTo(map);
+    }
   });
   map.on('overlayremove', function(e) {
     if (e.name === 'Radar') hideRainviewerAnim();
     if (e.name === 'Rainfall Advisory') {
-      // Remove provinceLayer from rainfallAdvisoryLayerGroup
       if (provinceLayer && rainfallAdvisoryLayerGroup.hasLayer(provinceLayer)) {
         rainfallAdvisoryLayerGroup.removeLayer(provinceLayer);
       }
-      // Hide rainfall legend, show typhoon legend and source box
       var rainfallLegend = document.getElementById('rainfall-legend-box');
       var typhoonLegend = document.getElementById('map-legend-box');
       var sourceBox = document.getElementById('map-source-box');
@@ -864,6 +890,11 @@ if (document.getElementById('map')) {
       if (rainfallSourceBox) rainfallSourceBox.style.display = 'none';
       if (typhoonLegend) typhoonLegend.style.display = '';
       if (sourceBox) sourceBox.style.display = '';
+    }
+    if (e.name === 'Himawari-8 Satellite') {
+      if (himawariLayer && map.hasLayer(himawariLayer)) {
+        map.removeLayer(himawariLayer);
+      }
     }
   });
 
@@ -967,42 +998,25 @@ if (document.getElementById('map')) {
     };
   }
 
-  // --- Himawari-8 Animated Satellite Layer ---
-  let himawariLayer = null;
-  const himawariToggleBtn = document.getElementById('himawariToggleBtn');
-  let himawariVisible = true; // Always ON by default
+  // --- Himawari-8 Satellite Cloud Image Toggle (inside map, always on top) ---
+  const himawariBtn = document.getElementById('himawariBtn');
+  let himawariVisible = false;
 
-  function addHimawariLayer() {
-    if (!himawariLayer) {
-      himawariLayer = L.himawariLayer({
-        interval: 10, // minutes between frames
-        frames: 6,    // number of frames to animate
-        level: 4,     // tile grid (4x4)
-        animate: true,
-        opacity: 0.7
-      }).addTo(map);
-    } else {
-      map.addLayer(himawariLayer);
-    }
-    if (himawariToggleBtn) himawariToggleBtn.textContent = 'Hide Himawari-8 Satellite';
-    himawariVisible = true;
-  }
-  function removeHimawariLayer() {
-    if (himawariLayer) map.removeLayer(himawariLayer);
-    if (himawariToggleBtn) himawariToggleBtn.textContent = 'Show Himawari-8 Satellite';
-    himawariVisible = false;
-  }
-  if (himawariToggleBtn) {
-    himawariToggleBtn.onclick = function() {
-      if (himawariVisible) {
-        removeHimawariLayer();
+  if (himawariBtn) {
+    himawariBtn.onclick = function() {
+      if (!himawariVisible) {
+        if (!rainviewerLayer) { // Use rainviewerLayer for Himawari-8
+          showRainviewerAnim();
+        }
+        himawariBtn.textContent = 'Hide Himawari-8 Satellite';
+        himawariVisible = true;
       } else {
-        addHimawariLayer();
+        hideRainviewerAnim();
+        himawariBtn.textContent = 'Show Himawari-8 Satellite';
+        himawariVisible = false;
       }
     };
   }
-  // Always ON by default
-  addHimawariLayer();
 
   // --- Cloud Overlay Toggle Button (NASA GIBS only) ---
   // const cloudBtnContainer = document.createElement('div'); // This line is removed
