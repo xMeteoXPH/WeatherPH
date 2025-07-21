@@ -288,6 +288,7 @@ if (document.getElementById('map')) {
   }
 
   // --- Draw Philippine Area of Responsibility (PAR) ---
+  let parLine = null;
   function drawPAR() {
     // Coordinates: 5°N 115°E, 15°N 115°E, 21°N 120°E, 25°N 120°E, 25°N 135°E, 5°N 135°E, and back to 5°N 115°E
     const parCoords = [
@@ -299,14 +300,18 @@ if (document.getElementById('map')) {
       [5, 135],
       [5, 115] // Close the polygon
     ];
-    L.polyline(parCoords, {
+    if (parLine) { map.removeLayer(parLine); parLine = null; }
+    parLine = L.polyline(parCoords, {
       color: '#fff',
       weight: 1, // Thinner line
       opacity: 0.9,
       dashArray: '8 8', // Broken/dashed line
       fill: false,
       interactive: false
-    }).addTo(map);
+    });
+    if (document.getElementById('toggleParLine')?.checked) {
+      parLine.addTo(map);
+    }
   }
 
   // Remove drawTracedConeOfUncertainty and its call
@@ -314,6 +319,18 @@ if (document.getElementById('map')) {
   // Initial draw
   drawTrack();
   drawPAR();
+
+  // PAR Line toggle logic
+  const toggleParLine = document.getElementById('toggleParLine');
+  if (toggleParLine) {
+    toggleParLine.addEventListener('change', function() {
+      if (toggleParLine.checked) {
+        if (parLine && !map.hasLayer(parLine)) parLine.addTo(map);
+      } else {
+        if (parLine && map.hasLayer(parLine)) map.removeLayer(parLine);
+      }
+    });
+  }
 
   // Add hide/show arrow button for Leaflet layer control (only once, only for the topmost control)
   setTimeout(function() {
