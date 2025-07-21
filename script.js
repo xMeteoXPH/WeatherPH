@@ -878,11 +878,19 @@ if (document.getElementById('map')) {
       var rainfallSourceBox = document.getElementById('rainfall-source-box');
       if (rainfallLegend) rainfallLegend.style.display = '';
       if (rainfallSourceBox) rainfallSourceBox.style.display = '';
-      if (typhoonLegend) typhoonLegend.style.display = 'none';
-      if (sourceBox) sourceBox.style.display = 'none';
+      if (map.hasLayer(typhoonLayerGroup)) {
+        if (typhoonLegend) typhoonLegend.style.display = '';
+        if (sourceBox) sourceBox.style.display = '';
+      }
     }
     if (e.name === 'Satellite Imagery') {
-      showLatestHimawari8();
+      showGibsLatest();
+    }
+    if (e.name === 'Typhoon Track') {
+      var typhoonLegend = document.getElementById('map-legend-box');
+      var sourceBox = document.getElementById('map-source-box');
+      if (typhoonLegend) typhoonLegend.style.display = '';
+      if (sourceBox) sourceBox.style.display = '';
     }
   });
   map.on('overlayremove', function(e) {
@@ -897,11 +905,19 @@ if (document.getElementById('map')) {
       var rainfallSourceBox = document.getElementById('rainfall-source-box');
       if (rainfallLegend) rainfallLegend.style.display = 'none';
       if (rainfallSourceBox) rainfallSourceBox.style.display = 'none';
-      if (typhoonLegend) typhoonLegend.style.display = '';
-      if (sourceBox) sourceBox.style.display = '';
+      if (map.hasLayer(typhoonLayerGroup)) {
+        if (typhoonLegend) typhoonLegend.style.display = '';
+        if (sourceBox) sourceBox.style.display = '';
+      }
     }
     if (e.name === 'Satellite Imagery') {
-      removeHimawari8();
+      removeGibsLayer();
+    }
+    if (e.name === 'Typhoon Track') {
+      var typhoonLegend = document.getElementById('map-legend-box');
+      var sourceBox = document.getElementById('map-source-box');
+      if (typhoonLegend) typhoonLegend.style.display = 'none';
+      if (sourceBox) sourceBox.style.display = 'none';
     }
   });
 
@@ -1018,7 +1034,7 @@ if (document.getElementById('map')) {
         himawariBtn.textContent = 'Hide Himawari-8 Satellite';
         himawariVisible = true;
       } else {
-        removeHimawari8();
+        hideRainviewerAnim();
         himawariBtn.textContent = 'Show Himawari-8 Satellite';
         himawariVisible = false;
       }
@@ -1414,68 +1430,41 @@ if (document.getElementById('map')) {
       console.warn('Province boundary file missing or invalid:', err);
     });
 
-  // --- Himawari-8 Satellite Imagery (Latest Static Image) ---
-  let gibsAnimLayer = null;
-  function showLatestHimawari8() {
-    if (gibsAnimLayer) map.removeLayer(gibsAnimLayer);
-    // Use today's date and the most recent 10-minute mark
-    const now = new Date();
-    now.setUTCMinutes(Math.floor(now.getUTCMinutes() / 10) * 10, 0, 0);
-    const iso = now.toISOString().replace(/\.[0-9]{3}Z$/, 'Z');
-    gibsAnimLayer = L.tileLayer(
-      `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/Himawari-8-TrueColor/${iso}/250m/{z}/{y}/{x}.jpg`,
+  // --- NASA GIBS Satellite Imagery (latest only, no animation) ---
+  let gibsLayer = null;
+
+  function getLatestGibsDate() {
+    const today = new Date();
+    const yyyy = today.getUTCFullYear();
+    const mm = String(today.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(today.getUTCDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function showGibsLatest() {
+    if (gibsLayer) map.removeLayer(gibsLayer);
+    const date = getLatestGibsDate();
+    gibsLayer = L.tileLayer(
+      `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/${date}/250m/{z}/{y}/{x}.jpg`,
       { attribution: 'NASA GIBS', maxZoom: 9, opacity: 0.85 }
     );
-    gibsAnimLayer.addTo(map);
+    gibsLayer.addTo(map);
   }
-  function removeHimawari8() {
-    if (gibsAnimLayer) { map.removeLayer(gibsAnimLayer); gibsAnimLayer = null; }
+
+  function removeGibsLayer() {
+    if (gibsLayer) { map.removeLayer(gibsLayer); gibsLayer = null; }
   }
+
   map.on('overlayadd', function(e) {
     if (e.name === 'Satellite Imagery') {
-      showLatestHimawari8();
+      showGibsLatest();
     }
   });
   map.on('overlayremove', function(e) {
     if (e.name === 'Satellite Imagery') {
-      removeHimawari8();
+      removeGibsLayer();
     }
   });
-  // Hide controls by default
-  if (satelliteControls) satelliteControls.style.display = 'none';
-
-  // --- Satellite Animation Controls ---
-  const satelliteControls = document.getElementById('satellite-controls');
-  const satellitePlayPauseBtn = document.getElementById('satellitePlayPauseBtn');
-  const satelliteFrameTime = document.getElementById('satelliteFrameTime');
-  let gibsAnimPaused = true;
-
-  function updateSatelliteControls() {
-    if (gibsAnimFrames.length > 0 && gibsAnimLayer) {
-      satelliteControls.style.display = '';
-      satellitePlayPauseBtn.textContent = gibsAnimPaused ? '▶' : '❚❚';
-      satelliteFrameTime.textContent = gibsAnimFrames[gibsAnimIdx]?.gibsTimeLabel || '--:--';
-    } else {
-      satelliteControls.style.display = 'none';
-    }
-  }
-  if (satellitePlayPauseBtn) {
-    satellitePlayPauseBtn.onclick = function() {
-      gibsAnimPaused = !gibsAnimPaused;
-      updateSatelliteControls();
-      if (!gibsAnimPaused) {
-        if (gibsAnimTimer) clearInterval(gibsAnimTimer);
-        gibsAnimTimer = setInterval(() => {
-          gibsAnimIdx = (gibsAnimIdx + 1) % gibsAnimFrames.length;
-          showGibsAnimFrame(gibsAnimIdx);
-          updateSatelliteControls();
-        }, 800);
-      } else {
-        if (gibsAnimTimer) clearInterval(gibsAnimTimer);
-        gibsAnimTimer = null;
-      }
-    };
-  }
 
   // --- Pointer Circle Tool ---
   let pointerCircleToolActive = false;
