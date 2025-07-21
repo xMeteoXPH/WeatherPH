@@ -808,11 +808,18 @@ if (document.getElementById('map')) {
   // Dummy layer for 'Radar' so it appears in the layer control
   const dummyRainviewerLayer = L.layerGroup();
 
-  // Add layer control for Typhoon Track, Radar, and Satellite (as dummy overlays)
-  L.control.layers(baseLayers, {
+  // --- Rainfall Advisory LayerGroup (for toggling in layer control) ---
+  // We'll use a LayerGroup to hold the provinceLayer once loaded
+  const rainfallAdvisoryLayerGroup = L.layerGroup();
+  let rainfallAdvisoryLoaded = false;
+
+  // Add layer control for Typhoon Track, Radar, and Rainfall Advisory (as overlays)
+  const overlays = {
     'Typhoon Track': typhoonLayerGroup,
-    'Radar': dummyRainviewerLayer
-  }, { position: 'topright', collapsed: false }).addTo(map);
+    'Radar': dummyRainviewerLayer,
+    'Rainfall Advisory': rainfallAdvisoryLayerGroup
+  };
+  L.control.layers(baseLayers, overlays, { position: 'topright', collapsed: false }).addTo(map);
 
   typhoonLayerGroup.addTo(map);
 
@@ -822,12 +829,24 @@ if (document.getElementById('map')) {
       rainviewerActive = true;
       fetchRainviewerFrames(() => {
         rainviewerFrameIdx = 0;
-          showRainviewerAnim();
-        });
+        showRainviewerAnim();
+      });
+    }
+    if (e.name === 'Rainfall Advisory') {
+      // Add provinceLayer to rainfallAdvisoryLayerGroup if loaded
+      if (provinceLayer && !rainfallAdvisoryLayerGroup.hasLayer(provinceLayer)) {
+        rainfallAdvisoryLayerGroup.addLayer(provinceLayer);
+      }
     }
   });
   map.on('overlayremove', function(e) {
     if (e.name === 'Radar') hideRainviewerAnim();
+    if (e.name === 'Rainfall Advisory') {
+      // Remove provinceLayer from rainfallAdvisoryLayerGroup
+      if (provinceLayer && rainfallAdvisoryLayerGroup.hasLayer(provinceLayer)) {
+        rainfallAdvisoryLayerGroup.removeLayer(provinceLayer);
+      }
+    }
   });
 
   // --- Leaflet Layer Control Toggle Button Logic ---
@@ -1331,7 +1350,10 @@ if (document.getElementById('map')) {
           });
         },
         interactive: true
-      }).addTo(map);
+      });
+      // Add to rainfallAdvisoryLayerGroup for toggling
+      rainfallAdvisoryLayerGroup.addLayer(provinceLayer);
+      rainfallAdvisoryLoaded = true;
     })
     .catch(err => {
       console.warn('Province boundary file missing or invalid:', err);
