@@ -807,9 +807,9 @@ if (document.getElementById('map')) {
 
   // Dummy layer for 'Radar' so it appears in the layer control
   const dummyRainviewerLayer = L.layerGroup();
-  // Dummy layer for Himawari-8 Satellite
-  const dummyHimawariLayer = L.layerGroup();
-  let himawariLayer = null;
+  // Remove Himawari-8 dummy and layer variables
+  // const dummyHimawariLayer = L.layerGroup();
+  // let himawariLayer = null;
 
   // --- Rainfall Advisory LayerGroup (for toggling in layer control) ---
   // We'll use a LayerGroup to hold the provinceLayer once loaded
@@ -817,25 +817,26 @@ if (document.getElementById('map')) {
   let rainfallAdvisoryLoaded = false;
 
   // --- Himawari-8 Animated Satellite Layer ---
-  function createHimawariLayer() {
-    if (!himawariLayer) {
-      himawariLayer = L.himawariLayer({
-        interval: 10, // minutes between frames
-        frames: 6,    // number of frames to animate
-        level: 4,     // tile grid (4x4)
-        animate: true,
-        opacity: 0.7
-      });
-    }
-    return himawariLayer;
-  }
+  // function createHimawariLayer() { // This function is removed
+  //   if (!himawariLayer) { // This line is removed
+  //     himawariLayer = L.himawariLayer({ // This line is removed
+  //       interval: 10, // minutes between frames // This line is removed
+  //       frames: 6,    // number of frames to animate // This line is removed
+  //       level: 4,     // tile grid (4x4) // This line is removed
+  //       animate: true, // This line is removed
+  //       opacity: 0.7 // This line is removed
+  //     }); // This line is removed
+  //   } // This line is removed
+  //   return himawariLayer; // This line is removed
+  // } // This block is removed
 
-  // Add layer control for Typhoon Track, Radar, Rainfall Advisory, and Himawari-8 Satellite (as overlays)
+  // Add layer control for Typhoon Track, Radar, Rainfall Advisory, and Satellite Imagery (as overlays)
+  const dummySatelliteLayer = L.layerGroup();
   const overlays = {
     'Typhoon Track': typhoonLayerGroup,
     'Radar': dummyRainviewerLayer,
     'Rainfall Advisory': rainfallAdvisoryLayerGroup,
-    'Himawari-8 Satellite': dummyHimawariLayer
+    'Satellite Imagery': dummySatelliteLayer
   };
   L.control.layers(baseLayers, overlays, { position: 'topright', collapsed: false }).addTo(map);
 
@@ -863,17 +864,8 @@ if (document.getElementById('map')) {
       if (typhoonLegend) typhoonLegend.style.display = 'none';
       if (sourceBox) sourceBox.style.display = 'none';
     }
-    if (e.name === 'Himawari-8 Satellite') {
-      if (!himawariLayer) {
-        himawariLayer = L.himawariLayer({
-          interval: 10,
-          frames: 6,
-          level: 4,
-          animate: true,
-          opacity: 0.7
-        });
-      }
-      himawariLayer.addTo(map);
+    if (e.name === 'Satellite Imagery') {
+      startGibsAnimation();
     }
   });
   map.on('overlayremove', function(e) {
@@ -891,10 +883,8 @@ if (document.getElementById('map')) {
       if (typhoonLegend) typhoonLegend.style.display = '';
       if (sourceBox) sourceBox.style.display = '';
     }
-    if (e.name === 'Himawari-8 Satellite') {
-      if (himawariLayer && map.hasLayer(himawariLayer)) {
-        map.removeLayer(himawariLayer);
-      }
+    if (e.name === 'Satellite Imagery') {
+      stopGibsAnimation();
     }
   });
 
@@ -1407,4 +1397,47 @@ if (document.getElementById('map')) {
     .catch(err => {
       console.warn('Province boundary file missing or invalid:', err);
     });
+
+  // --- NASA GIBS Animated Satellite Imagery ---
+  let gibsLayer = null;
+  let gibsAnimTimer = null;
+  let gibsFrameIdx = 0;
+  let gibsDates = [];
+
+  // Helper: get last N days as YYYY-MM-DD strings
+  function getLastNDates(n) {
+    const dates = [];
+    const today = new Date();
+    for (let i = n - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      dates.push(d.toISOString().slice(0, 10));
+    }
+    return dates;
+  }
+
+  function showGibsFrame(idx) {
+    if (gibsLayer) map.removeLayer(gibsLayer);
+    gibsLayer = L.tileLayer(
+      `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/${gibsDates[idx]}/250m/{z}/{y}/{x}.jpg`,
+      { attribution: 'NASA GIBS', maxZoom: 9, opacity: 0.85 }
+    );
+    gibsLayer.addTo(map);
+  }
+
+  function startGibsAnimation() {
+    gibsDates = getLastNDates(6);
+    gibsFrameIdx = 0;
+    showGibsFrame(gibsFrameIdx);
+    gibsAnimTimer = setInterval(() => {
+      gibsFrameIdx = (gibsFrameIdx + 1) % gibsDates.length;
+      showGibsFrame(gibsFrameIdx);
+    }, 1200);
+  }
+
+  function stopGibsAnimation() {
+    if (gibsAnimTimer) clearInterval(gibsAnimTimer);
+    gibsAnimTimer = null;
+    if (gibsLayer) { map.removeLayer(gibsLayer); gibsLayer = null; }
+  }
 } 
