@@ -1359,25 +1359,24 @@ if (document.getElementById('map')) {
 
   function styleProvince(feature) {
     const name = feature.properties && feature.properties.NAME_1;
+    let fillColor = 'rgba(0,0,0,0)';
+    let fillOpacity = 0.1;
     if (filledProvinces[name]) {
-      return {
-        color: '#444',
-        weight: 0.5,
-        fill: true,
-        fillColor: filledProvinces[name],
-        fillOpacity: 0.7,
-        opacity: 0.9
-      };
-    } else {
-      return {
-        color: '#444',
-        weight: 0.5,
-        fill: true,
-        fillColor: 'rgba(0,0,0,0)',
-        fillOpacity: 0.1,
-        opacity: 0.9
-      };
+      // Brighter color mapping
+      if (filledProvinces[name] === '#ffe44c') fillColor = '#fff94c'; // Brighter yellow
+      else if (filledProvinces[name] === '#ffb84c') fillColor = '#ff9900'; // Brighter orange
+      else if (filledProvinces[name] === '#e74c3c') fillColor = '#ff3333'; // Brighter red
+      else fillColor = filledProvinces[name];
+      fillOpacity = 0.85;
     }
+    return {
+      color: '#444',
+      weight: 0.5,
+      fill: true,
+      fillColor: fillColor,
+      fillOpacity: fillOpacity,
+      opacity: 0.9
+    };
   }
 
   function resetProvinceFills() {
