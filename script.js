@@ -1449,4 +1449,89 @@ if (document.getElementById('map')) {
       removeGibsLayer();
     }
   });
+
+  // --- Pointer Circle Tool ---
+  let pointerCircleToolActive = false;
+  let pointerCircleOverlays = [];
+  const togglePointerCircleTool = document.getElementById('togglePointerCircleTool');
+  if (togglePointerCircleTool) {
+    togglePointerCircleTool.addEventListener('change', function() {
+      pointerCircleToolActive = togglePointerCircleTool.checked;
+      map.getContainer().style.cursor = pointerCircleToolActive ? 'crosshair' : '';
+    });
+  }
+  // Add Clear Pointer Circles button
+  const clearPointerCirclesBtn = document.createElement('button');
+  clearPointerCirclesBtn.textContent = 'Clear Pointer Circles';
+  clearPointerCirclesBtn.type = 'button';
+  clearPointerCirclesBtn.style.margin = '6px';
+  const controlsRow1 = document.getElementById('controls-row-1') || document.getElementById('controls-row');
+  if (controlsRow1) controlsRow1.appendChild(clearPointerCirclesBtn);
+  clearPointerCirclesBtn.onclick = function() {
+    pointerCircleOverlays.forEach(o => map.removeLayer(o));
+    pointerCircleOverlays = [];
+  };
+  // Helper to create SVG overlay for pointer circle + L
+  function createPointerCircleOverlay(latlng, radiusMeters) {
+    // Calculate bounds for the SVG overlay
+    const bounds = L.latLngBounds(
+      map.layerPointToLatLng(map.latLngToLayerPoint(latlng).subtract([radiusMeters / map.options.crs.R, radiusMeters / map.options.crs.R])),
+      map.layerPointToLatLng(map.latLngToLayerPoint(latlng).add([radiusMeters / map.options.crs.R, radiusMeters / map.options.crs.R]))
+    );
+    // But for simplicity, use a large enough bounds around the center
+    const d = radiusMeters * 1.1 / 111320; // ~deg per meter
+    const overlayBounds = [
+      [latlng.lat - d, latlng.lng - d],
+      [latlng.lat + d, latlng.lng + d]
+    ];
+    // SVG overlay content
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '100%');
+    svg.setAttribute('viewBox', '0 0 200 200');
+    // Circle
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', '100');
+    circle.setAttribute('cy', '100');
+    circle.setAttribute('r', '90');
+    circle.setAttribute('stroke', '#eee');
+    circle.setAttribute('stroke-width', '4');
+    circle.setAttribute('fill', '#fff');
+    circle.setAttribute('fill-opacity', '0.08');
+    circle.setAttribute('stroke-dasharray', '12 8');
+    svg.appendChild(circle);
+    // L
+    const lText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    lText.setAttribute('x', '100');
+    lText.setAttribute('y', '120');
+    lText.setAttribute('text-anchor', 'middle');
+    lText.setAttribute('font-size', '70');
+    lText.setAttribute('font-weight', 'bold');
+    lText.setAttribute('fill', '#eee');
+    lText.setAttribute('stroke', '#222');
+    lText.setAttribute('stroke-width', '2');
+    lText.setAttribute('paint-order', 'stroke');
+    lText.textContent = 'L';
+    svg.appendChild(lText);
+    // SVG overlay
+    const overlay = L.svgOverlay(svg, overlayBounds, {interactive: false});
+    overlay.addTo(map);
+    return overlay;
+  }
+  // Add pointer circle on map click if tool is active
+  map.on('click', function(e) {
+    if (pointerCircleToolActive) {
+      const overlay = createPointerCircleOverlay(e.latlng, 120000);
+      pointerCircleOverlays.push(overlay);
+    }
+  });
+  // On zoom or move, redraw all overlays
+  function redrawPointerCircleOverlays() {
+    pointerCircleOverlays.forEach(o => map.removeLayer(o));
+    pointerCircleOverlays = pointerCircleOverlays.map(o => {
+      const center = o.getBounds().getCenter();
+      return createPointerCircleOverlay(center, 120000);
+    });
+  }
+  map.on('zoomend moveend', redrawPointerCircleOverlays);
 } 
