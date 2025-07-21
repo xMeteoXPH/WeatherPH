@@ -852,7 +852,7 @@ if (document.getElementById('map')) {
   const overlays = {
     'Typhoon Track': typhoonLayerGroup,
     'Radar': dummyRainviewerLayer,
-    'Rainfall Advisory': rainfallAdvisoryLayerGroup,
+    'Weather Advisory': rainfallAdvisoryLayerGroup,
     'Satellite Imagery': dummySatelliteLayer
   };
   L.control.layers(baseLayers, overlays, { position: 'topright', collapsed: false }).addTo(map);
@@ -868,7 +868,7 @@ if (document.getElementById('map')) {
         showRainviewerAnim();
       });
     }
-    if (e.name === 'Rainfall Advisory') {
+    if (e.name === 'Weather Advisory') {
       if (provinceLayer && !rainfallAdvisoryLayerGroup.hasLayer(provinceLayer)) {
         rainfallAdvisoryLayerGroup.addLayer(provinceLayer);
       }
@@ -882,12 +882,12 @@ if (document.getElementById('map')) {
       if (sourceBox) sourceBox.style.display = 'none';
     }
     if (e.name === 'Satellite Imagery') {
-      startGibsAnimation();
+      showGibsLatest();
     }
   });
   map.on('overlayremove', function(e) {
     if (e.name === 'Radar') hideRainviewerAnim();
-    if (e.name === 'Rainfall Advisory') {
+    if (e.name === 'Weather Advisory') {
       if (provinceLayer && rainfallAdvisoryLayerGroup.hasLayer(provinceLayer)) {
         rainfallAdvisoryLayerGroup.removeLayer(provinceLayer);
       }
@@ -901,7 +901,7 @@ if (document.getElementById('map')) {
       if (sourceBox) sourceBox.style.display = '';
     }
     if (e.name === 'Satellite Imagery') {
-      stopGibsAnimation();
+      removeGibsLayer();
     }
   });
 
@@ -1414,46 +1414,39 @@ if (document.getElementById('map')) {
       console.warn('Province boundary file missing or invalid:', err);
     });
 
-  // --- NASA GIBS Animated Satellite Imagery ---
+  // --- NASA GIBS Satellite Imagery (latest only, no animation) ---
   let gibsLayer = null;
-  let gibsAnimTimer = null;
-  let gibsFrameIdx = 0;
-  let gibsDates = [];
 
-  // Helper: get last N days as YYYY-MM-DD strings
-  function getLastNDates(n) {
-    const dates = [];
+  function getLatestGibsDate() {
     const today = new Date();
-    for (let i = n - 1; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      dates.push(d.toISOString().slice(0, 10));
-    }
-    return dates;
+    const yyyy = today.getUTCFullYear();
+    const mm = String(today.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(today.getUTCDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
   }
 
-  function showGibsFrame(idx) {
+  function showGibsLatest() {
     if (gibsLayer) map.removeLayer(gibsLayer);
+    const date = getLatestGibsDate();
     gibsLayer = L.tileLayer(
-      `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/${gibsDates[idx]}/250m/{z}/{y}/{x}.jpg`,
+      `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/${date}/250m/{z}/{y}/{x}.jpg`,
       { attribution: 'NASA GIBS', maxZoom: 9, opacity: 0.85 }
     );
     gibsLayer.addTo(map);
   }
 
-  function startGibsAnimation() {
-    gibsDates = getLastNDates(6);
-    gibsFrameIdx = 0;
-    showGibsFrame(gibsFrameIdx);
-    gibsAnimTimer = setInterval(() => {
-      gibsFrameIdx = (gibsFrameIdx + 1) % gibsDates.length;
-      showGibsFrame(gibsFrameIdx);
-    }, 1200);
-  }
-
-  function stopGibsAnimation() {
-    if (gibsAnimTimer) clearInterval(gibsAnimTimer);
-    gibsAnimTimer = null;
+  function removeGibsLayer() {
     if (gibsLayer) { map.removeLayer(gibsLayer); gibsLayer = null; }
   }
+
+  map.on('overlayadd', function(e) {
+    if (e.name === 'Satellite Imagery') {
+      showGibsLatest();
+    }
+  });
+  map.on('overlayremove', function(e) {
+    if (e.name === 'Satellite Imagery') {
+      removeGibsLayer();
+    }
+  });
 } 
