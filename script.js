@@ -837,11 +837,15 @@ if (document.getElementById('map')) {
       if (provinceLayer && !rainfallAdvisoryLayerGroup.hasLayer(provinceLayer)) {
         rainfallAdvisoryLayerGroup.addLayer(provinceLayer);
       }
-      // Show rainfall legend, hide typhoon legend
+      // Show rainfall legend, hide typhoon legend and source box
       var rainfallLegend = document.getElementById('rainfall-legend-box');
       var typhoonLegend = document.getElementById('map-legend-box');
+      var sourceBox = document.getElementById('map-source-box');
+      var rainfallSourceBox = document.getElementById('rainfall-source-box');
       if (rainfallLegend) rainfallLegend.style.display = '';
+      if (rainfallSourceBox) rainfallSourceBox.style.display = '';
       if (typhoonLegend) typhoonLegend.style.display = 'none';
+      if (sourceBox) sourceBox.style.display = 'none';
     }
   });
   map.on('overlayremove', function(e) {
@@ -851,11 +855,15 @@ if (document.getElementById('map')) {
       if (provinceLayer && rainfallAdvisoryLayerGroup.hasLayer(provinceLayer)) {
         rainfallAdvisoryLayerGroup.removeLayer(provinceLayer);
       }
-      // Hide rainfall legend, show typhoon legend
+      // Hide rainfall legend, show typhoon legend and source box
       var rainfallLegend = document.getElementById('rainfall-legend-box');
       var typhoonLegend = document.getElementById('map-legend-box');
+      var sourceBox = document.getElementById('map-source-box');
+      var rainfallSourceBox = document.getElementById('rainfall-source-box');
       if (rainfallLegend) rainfallLegend.style.display = 'none';
+      if (rainfallSourceBox) rainfallSourceBox.style.display = 'none';
       if (typhoonLegend) typhoonLegend.style.display = '';
+      if (sourceBox) sourceBox.style.display = '';
     }
   });
 
