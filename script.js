@@ -882,7 +882,7 @@ if (document.getElementById('map')) {
       if (sourceBox) sourceBox.style.display = 'none';
     }
     if (e.name === 'Satellite Imagery') {
-      showGibsLatest();
+      showLatestHimawari8();
     }
   });
   map.on('overlayremove', function(e) {
@@ -901,7 +901,7 @@ if (document.getElementById('map')) {
       if (sourceBox) sourceBox.style.display = '';
     }
     if (e.name === 'Satellite Imagery') {
-      removeGibsLayer();
+      removeHimawari8();
     }
   });
 
@@ -1018,7 +1018,7 @@ if (document.getElementById('map')) {
         himawariBtn.textContent = 'Hide Himawari-8 Satellite';
         himawariVisible = true;
       } else {
-        hideRainviewerAnim();
+        removeHimawari8();
         himawariBtn.textContent = 'Show Himawari-8 Satellite';
         himawariVisible = false;
       }
@@ -1414,101 +1414,31 @@ if (document.getElementById('map')) {
       console.warn('Province boundary file missing or invalid:', err);
     });
 
-  // --- NASA GIBS Animated Satellite Imagery (Past Hour, auto-play) ---
+  // --- Himawari-8 Satellite Imagery (Latest Static Image) ---
   let gibsAnimLayer = null;
-  let gibsAnimTimer = null;
-  let gibsAnimFrames = [];
-  let gibsAnimIdx = 0;
-
-  // Helper: get recent timestamps (every 10 min for past hour)
-  function getRecentGibsTimestamps(minutesBack = 60, interval = 10) {
+  function showLatestHimawari8() {
+    if (gibsAnimLayer) map.removeLayer(gibsAnimLayer);
+    // Use today's date and the most recent 10-minute mark
     const now = new Date();
-    now.setUTCMinutes(Math.floor(now.getUTCMinutes() / interval) * interval, 0, 0);
-    const timestamps = [];
-    for (let i = minutesBack; i >= 0; i -= interval) {
-      const d = new Date(now.getTime() - i * 60000);
-      const iso = d.toISOString().replace(/\.[0-9]{3}Z$/, 'Z');
-      timestamps.push(iso);
-    }
-    return timestamps;
-  }
-
-  // Try GOES-East-ABI-TrueColor first, fallback to VIIRS if not available
-  const gibsLayerId = 'GOES-East-ABI-TrueColor';
-  const gibsFallbackLayerId = 'VIIRS_SNPP_CorrectedReflectance_TrueColor';
-
-  function makeGibsTileLayer(layerId, time) {
-    return L.tileLayer(
-      `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${layerId}/${time}/250m/{z}/{y}/{x}.jpg`,
+    now.setUTCMinutes(Math.floor(now.getUTCMinutes() / 10) * 10, 0, 0);
+    const iso = now.toISOString().replace(/\.[0-9]{3}Z$/, 'Z');
+    gibsAnimLayer = L.tileLayer(
+      `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/Himawari-8-TrueColor/${iso}/250m/{z}/{y}/{x}.jpg`,
       { attribution: 'NASA GIBS', maxZoom: 9, opacity: 0.85 }
     );
+    gibsAnimLayer.addTo(map);
   }
-
-  // Preload frames and animate (auto-play)
-  function startGibsAnimation() {
-    const timestamps = getRecentGibsTimestamps(60, 10); // past hour, every 10 min
-    gibsAnimFrames = [];
-    let loaded = 0;
-    let tried = 0;
-    timestamps.forEach((ts, idx) => {
-      const layer = makeGibsTileLayer(gibsLayerId, ts);
-      layer.on('tileload', function() {
-        gibsAnimFrames[idx] = layer;
-        loaded++;
-        tried++;
-        if (tried === timestamps.length) finishGibsAnimLoad();
-      });
-      layer.on('tileerror', function() {
-        // Try fallback VIIRS for this timestamp
-        const fallback = makeGibsTileLayer(gibsFallbackLayerId, ts.slice(0,10));
-        fallback.on('tileload', function() {
-          gibsAnimFrames[idx] = fallback;
-          loaded++;
-          tried++;
-          if (tried === timestamps.length) finishGibsAnimLoad();
-        });
-        fallback.on('tileerror', function() {
-          gibsAnimFrames[idx] = null;
-          tried++;
-          if (tried === timestamps.length) finishGibsAnimLoad();
-        });
-        fallback.createTile({x:0,y:0,z:0}, () => {});
-      });
-      layer.createTile({x:0,y:0,z:0}, () => {});
-    });
-    function finishGibsAnimLoad() {
-      gibsAnimFrames = gibsAnimFrames.filter(f => f);
-      if (gibsAnimFrames.length > 0) {
-        gibsAnimIdx = 0;
-        showGibsAnimFrame(gibsAnimIdx);
-        if (gibsAnimTimer) clearInterval(gibsAnimTimer);
-        gibsAnimTimer = setInterval(() => {
-          gibsAnimIdx = (gibsAnimIdx + 1) % gibsAnimFrames.length;
-          showGibsAnimFrame(gibsAnimIdx);
-        }, 800);
-      }
-    }
-  }
-  function showGibsAnimFrame(idx) {
-    if (gibsAnimLayer) map.removeLayer(gibsAnimLayer);
-    gibsAnimLayer = gibsAnimFrames[idx];
-    if (gibsAnimLayer) gibsAnimLayer.addTo(map);
-  }
-  function stopGibsAnimation() {
-    if (gibsAnimTimer) clearInterval(gibsAnimTimer);
-    gibsAnimTimer = null;
+  function removeHimawari8() {
     if (gibsAnimLayer) { map.removeLayer(gibsAnimLayer); gibsAnimLayer = null; }
-    gibsAnimFrames = [];
   }
-  // Show/hide controls on overlay toggle
   map.on('overlayadd', function(e) {
     if (e.name === 'Satellite Imagery') {
-      startGibsAnimation();
+      showLatestHimawari8();
     }
   });
   map.on('overlayremove', function(e) {
     if (e.name === 'Satellite Imagery') {
-      stopGibsAnimation();
+      removeHimawari8();
     }
   });
   // Hide controls by default
