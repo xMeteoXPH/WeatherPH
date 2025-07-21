@@ -43,10 +43,10 @@
         </div>
       </div>
       <div id="controls-row">
-        <div class="controls-group-row" id="controls-row-1">
-        <form id="typhoonPointForm" class="typhoon-point-form vertical-form">
-          <input type="number" step="any" id="latInput" placeholder="Latitude" required />
-          <input type="number" step="any" id="lonInput" placeholder="Longitude" required />
+        <div class="controls-group-row" id="controls-row-1" style="display:flex;flex-direction:column;gap:4px;">
+          <form id="typhoonPointForm" class="typhoon-point-form vertical-form" style="margin-bottom:2px;">
+            <input type="number" step="any" id="latInput" placeholder="Latitude" required />
+            <input type="number" step="any" id="lonInput" placeholder="Longitude" required />
             <select id="weekdayInput" required>
               <option value="" disabled selected>Weekday</option>
               <option value="Monday">Monday</option>
@@ -95,22 +95,27 @@
               <option value="STY -">STY -</option>
               <option value="LPA -">LPA -</option>
             </select>
-          <button type="submit">Add Point</button>
-        </form>
-        <!-- Pointer Circle Tool Toggle -->
-        <label style="margin:8px 0 0 2px;display:flex;align-items:center;font-size:13px;font-weight:500;gap:6px;">
-          <input type="checkbox" id="togglePointerCircleTool" /> Pointer Circle Tool
-        </label>
-        <!-- PAR Line Toggle -->
-        <label style="margin:8px 0 0 2px;display:flex;align-items:center;font-size:13px;font-weight:500;gap:6px;">
-          <input type="checkbox" id="toggleParLine" checked /> Show PAR Line
-        </label>
-        <div id="delete-controls">
-          <button id="clearPointsBtn" type="button">Remove All Points</button>
-          <select id="pointSelect"></select>
-          <button id="deleteSelectedBtn" type="button">Delete Selected Point</button>
+            <button type="submit">Add Point</button>
+          </form>
+          <!-- Toggles Row -->
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:2px;">
+            <label style="display:flex;align-items:center;font-size:13px;font-weight:500;gap:4px;margin:0;">
+              <input type="checkbox" id="togglePointerCircleTool" /> Pointer Circle Tool
+            </label>
+            <label style="display:flex;align-items:center;font-size:13px;font-weight:500;gap:4px;margin:0;">
+              <input type="checkbox" id="toggleParLine" checked /> Show PAR Line
+            </label>
+          </div>
+          <!-- Clear Buttons Row -->
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:2px;">
+            <button id="clearPointsBtn" type="button">Remove All Points</button>
+            <button id="deleteSelectedBtn" type="button">Delete Selected Point</button>
+            <button id="clearPointerCirclesBtn" type="button">Clear Pointer Circles</button>
+          </div>
+          <div id="delete-controls" style="margin-bottom:2px;">
+            <select id="pointSelect"></select>
+          </div>
         </div>
-      </div>
         <div class="controls-group-row" id="controls-row-2">
           <button id="insertImageBtn" type="button">Insert Image</button>
           <input type="file" id="imageFileInput" accept="image/*" style="display:none;">
