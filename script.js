@@ -967,25 +967,42 @@ if (document.getElementById('map')) {
     };
   }
 
-  // --- Himawari-8 Satellite Cloud Image Toggle (inside map, always on top) ---
-  const himawariBtn = document.getElementById('himawariBtn');
-  let himawariVisible = false;
+  // --- Himawari-8 Animated Satellite Layer ---
+  let himawariLayer = null;
+  const himawariToggleBtn = document.getElementById('himawariToggleBtn');
+  let himawariVisible = true; // Always ON by default
 
-  if (himawariBtn) {
-    himawariBtn.onclick = function() {
-      if (!himawariVisible) {
-        if (!rainviewerLayer) { // Use rainviewerLayer for Himawari-8
-          showRainviewerAnim();
-        }
-        himawariBtn.textContent = 'Hide Himawari-8 Satellite';
-        himawariVisible = true;
+  function addHimawariLayer() {
+    if (!himawariLayer) {
+      himawariLayer = L.himawariLayer({
+        interval: 10, // minutes between frames
+        frames: 6,    // number of frames to animate
+        level: 4,     // tile grid (4x4)
+        animate: true,
+        opacity: 0.7
+      }).addTo(map);
+    } else {
+      map.addLayer(himawariLayer);
+    }
+    if (himawariToggleBtn) himawariToggleBtn.textContent = 'Hide Himawari-8 Satellite';
+    himawariVisible = true;
+  }
+  function removeHimawariLayer() {
+    if (himawariLayer) map.removeLayer(himawariLayer);
+    if (himawariToggleBtn) himawariToggleBtn.textContent = 'Show Himawari-8 Satellite';
+    himawariVisible = false;
+  }
+  if (himawariToggleBtn) {
+    himawariToggleBtn.onclick = function() {
+      if (himawariVisible) {
+        removeHimawariLayer();
       } else {
-        hideRainviewerAnim();
-        himawariBtn.textContent = 'Show Himawari-8 Satellite';
-        himawariVisible = false;
+        addHimawariLayer();
       }
     };
   }
+  // Always ON by default
+  addHimawariLayer();
 
   // --- Cloud Overlay Toggle Button (NASA GIBS only) ---
   // const cloudBtnContainer = document.createElement('div'); // This line is removed
