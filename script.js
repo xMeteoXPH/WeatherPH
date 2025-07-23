@@ -1553,12 +1553,13 @@ if (document.getElementById('map')) {
 
   // --- Typhoon Signal Brush Tool ---
   let phBoundary = null;
-  // Load PH boundary as MultiPolygon
+  // Load PH boundary as MultiPolygon (not union)
   fetch('ph-provinces.json')
     .then(res => res.json())
     .then(data => {
-      // Union all provinces into a single MultiPolygon
-      phBoundary = turf.union(...data.features.map(f => turf.feature(f.geometry)));
+      // Collect all polygons/multipolygons
+      const polys = data.features.map(f => f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates);
+      phBoundary = turf.multiPolygon([].concat(...polys));
     });
   let activeSignalBrush = null;
   let drawingSignal = false;
