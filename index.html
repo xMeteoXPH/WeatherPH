@@ -106,18 +106,14 @@
               <input type="checkbox" id="toggleParLine" checked /> Show PAR Line
             </label>
           </div>
-          <!-- Typhoon Signal Brush Tool Row -->
+          <!-- Typhoon Signal Brush Row -->
           <div id="typhoon-signal-brush-row" style="display:flex;gap:8px;align-items:center;margin-bottom:2px;">
-            <label style="display:flex;align-items:center;font-size:13px;font-weight:500;gap:4px;margin:0;">
-              <input type="checkbox" id="toggleTyphoonSignalBrush" /> Typhoon Signal Brush
-            </label>
-            <button id="signal1Btn" type="button" style="background:#12dfdc;width:22px;height:22px;border-radius:50%;border:2px solid #222;outline:none;cursor:pointer;"></button>
-            <button id="signal2Btn" type="button" style="background:yellow;width:22px;height:22px;border-radius:50%;border:2px solid #222;outline:none;cursor:pointer;"></button>
-            <button id="signal3Btn" type="button" style="background:orange;width:22px;height:22px;border-radius:50%;border:2px solid #222;outline:none;cursor:pointer;"></button>
-            <button id="signal4Btn" type="button" style="background:red;width:22px;height:22px;border-radius:50%;border:2px solid #222;outline:none;cursor:pointer;"></button>
-            <button id="signal5Btn" type="button" style="background:#ed20dc;width:22px;height:22px;border-radius:50%;border:2px solid #222;outline:none;cursor:pointer;"></button>
-            <button id="eraserBtn" type="button" style="background:#fff;width:22px;height:22px;border-radius:50%;border:2px solid #888;outline:none;cursor:pointer;">🧹</button>
-            <button id="clearTyphoonSignalsBtn" type="button" style="margin-left:8px;">Clear Typhoon Signals</button>
+            <button type="button" class="signal-brush-btn" data-signal="1" style="background:#12dfdc;color:#222;font-weight:bold;">Signal 1</button>
+            <button type="button" class="signal-brush-btn" data-signal="2" style="background:yellow;color:#222;font-weight:bold;">Signal 2</button>
+            <button type="button" class="signal-brush-btn" data-signal="3" style="background:orange;color:#222;font-weight:bold;">Signal 3</button>
+            <button type="button" class="signal-brush-btn" data-signal="4" style="background:red;color:#fff;font-weight:bold;">Signal 4</button>
+            <button type="button" class="signal-brush-btn" data-signal="5" style="background:#ed20dc;color:#fff;font-weight:bold;">Signal 5</button>
+            <button type="button" id="clearTyphoonSignalsBtn" style="margin-left:8px;">Clear Typhoon Signals</button>
           </div>
           <!-- Clear Buttons Row -->
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:2px;">

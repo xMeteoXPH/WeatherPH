@@ -1375,35 +1375,24 @@ if (document.getElementById('map')) {
 
   function styleProvince(feature) {
     const name = feature.properties && feature.properties.NAME_1;
-    // Typhoon Signal Brush takes precedence
-    if (typhoonSignalFills[name]) {
-      return {
-        color: '#444',
-        weight: 2.5,
-        fill: true,
-        fillColor: typhoonSignalFills[name],
-        fillOpacity: 0.85,
-        opacity: 0.95
-      };
-    }
-    // Weather Advisory fill
     let fillColor = 'rgba(0,0,0,0)';
     let fillOpacity = 0.1;
     if (filledProvinces[name]) {
-      if (filledProvinces[name] === '#ffe44c') fillColor = '#fff94c';
-      else if (filledProvinces[name] === '#ffb84c') fillColor = '#ff9900';
-      else if (filledProvinces[name] === '#e74c3c') fillColor = '#ff3333';
+      // Brighter color mapping
+      if (filledProvinces[name] === '#ffe44c') fillColor = '#fff94c'; // Brighter yellow
+      else if (filledProvinces[name] === '#ffb84c') fillColor = '#ff9900'; // Brighter orange
+      else if (filledProvinces[name] === '#e74c3c') fillColor = '#ff3333'; // Brighter red
       else fillColor = filledProvinces[name];
       fillOpacity = 0.85;
     }
-    return {
-      color: '#444',
-      weight: 0.5,
-      fill: true,
+      return {
+        color: '#444',
+        weight: 0.5,
+        fill: true,
       fillColor: fillColor,
       fillOpacity: fillOpacity,
-      opacity: 0.9
-    };
+        opacity: 0.9
+      };
   }
 
   function resetProvinceFills() {
@@ -1427,12 +1416,6 @@ if (document.getElementById('map')) {
               filledProvinces[name] = selectedFillColor;
               provinceLayer.setStyle(styleProvince);
               clearProvinceFillsBtn.style.display = '';
-              L.DomEvent.stopPropagation(e);
-            }
-            if (typhoonSignalBrushActive && selectedTyphoonSignalColor) {
-              const name = feature.properties && feature.properties.NAME_1;
-              typhoonSignalFills[name] = selectedTyphoonSignalColor;
-              provinceLayer.setStyle(styleProvince);
               L.DomEvent.stopPropagation(e);
             }
           });
@@ -1568,81 +1551,77 @@ if (document.getElementById('map')) {
   }
   map.on('zoomend moveend', redrawPointerCircleOverlays);
 
-  // --- Typhoon Signal Brush Tool (Brush Mode) ---
-  let typhoonSignalBrushActive = false;
-  let selectedTyphoonSignalColor = null;
-  let typhoonSignalBrushMarks = [];
-  let isBrushing = false;
-  let eraserActive = false;
-  const typhoonSignalColors = {
-    signal1: '#12dfdc',
-    signal2: 'yellow',
-    signal3: 'orange',
-    signal4: 'red',
-    signal5: '#ed20dc'
+  // --- Typhoon Signal Brush Tool ---
+  let activeSignalBrush = null;
+  let drawingSignal = false;
+  let currentSignalLine = null;
+  let typhoonSignalLines = [];
+  const signalColors = {
+    1: '#12dfdc',
+    2: 'yellow',
+    3: 'orange',
+    4: 'red',
+    5: '#ed20dc'
   };
-  const toggleTyphoonSignalBrush = document.getElementById('toggleTyphoonSignalBrush');
-  if (toggleTyphoonSignalBrush) {
-    toggleTyphoonSignalBrush.addEventListener('change', function() {
-      typhoonSignalBrushActive = toggleTyphoonSignalBrush.checked;
-      map.getContainer().style.cursor = typhoonSignalBrushActive ? 'crosshair' : '';
+  // Handle signal brush button activation
+  const signalBrushBtns = Array.from(document.getElementsByClassName('signal-brush-btn'));
+  signalBrushBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      // Toggle active state
+      if (activeSignalBrush === btn.dataset.signal) {
+        activeSignalBrush = null;
+        btn.classList.remove('active');
+        map.getContainer().style.cursor = '';
+      } else {
+        activeSignalBrush = btn.dataset.signal;
+        signalBrushBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        map.getContainer().style.cursor = 'crosshair';
+      }
     });
-  }
-  function setSignalBtnActive(btnId) {
-    ['signal1Btn','signal2Btn','signal3Btn','signal4Btn','signal5Btn','eraserBtn'].forEach(id => {
-      const btn = document.getElementById(id);
-      if (btn) btn.style.outline = (id === btnId) ? '3px solid #333' : 'none';
-    });
-  }
-  document.getElementById('signal1Btn')?.addEventListener('click', function() { selectedTyphoonSignalColor = typhoonSignalColors.signal1; eraserActive = false; setSignalBtnActive('signal1Btn'); });
-  document.getElementById('signal2Btn')?.addEventListener('click', function() { selectedTyphoonSignalColor = typhoonSignalColors.signal2; eraserActive = false; setSignalBtnActive('signal2Btn'); });
-  document.getElementById('signal3Btn')?.addEventListener('click', function() { selectedTyphoonSignalColor = typhoonSignalColors.signal3; eraserActive = false; setSignalBtnActive('signal3Btn'); });
-  document.getElementById('signal4Btn')?.addEventListener('click', function() { selectedTyphoonSignalColor = typhoonSignalColors.signal4; eraserActive = false; setSignalBtnActive('signal4Btn'); });
-  document.getElementById('signal5Btn')?.addEventListener('click', function() { selectedTyphoonSignalColor = typhoonSignalColors.signal5; eraserActive = false; setSignalBtnActive('signal5Btn'); });
-  document.getElementById('eraserBtn')?.addEventListener('click', function() { selectedTyphoonSignalColor = null; eraserActive = true; setSignalBtnActive('eraserBtn'); });
-  document.getElementById('clearTyphoonSignalsBtn')?.addEventListener('click', function() {
-    typhoonSignalBrushMarks.forEach(m => map.removeLayer(m));
-    typhoonSignalBrushMarks = [];
   });
-  // Brush painting logic
+  // Drawing logic
   map.on('mousedown', function(e) {
-    if (typhoonSignalBrushActive && (selectedTyphoonSignalColor || eraserActive)) {
-      isBrushing = true;
-      paintTyphoonSignalBrush(e.latlng);
+    if (activeSignalBrush && !drawingSignal) {
+      drawingSignal = true;
+      currentSignalLine = L.polyline([e.latlng], {
+        color: signalColors[activeSignalBrush],
+        weight: 3,
+        opacity: 1,
+        smoothFactor: 1.0,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false
+      }).addTo(map);
+      typhoonSignalLines.push(currentSignalLine);
     }
   });
   map.on('mousemove', function(e) {
-    if (isBrushing && typhoonSignalBrushActive && (selectedTyphoonSignalColor || eraserActive)) {
-      paintTyphoonSignalBrush(e.latlng);
+    if (drawingSignal && currentSignalLine) {
+      const latlngs = currentSignalLine.getLatLngs();
+      latlngs.push(e.latlng);
+      currentSignalLine.setLatLngs(latlngs);
     }
   });
-  map.on('mouseup', function() { isBrushing = false; });
-  map.on('mouseout', function() { isBrushing = false; });
-  function paintTyphoonSignalBrush(latlng) {
-    if (eraserActive) {
-      // Remove marks within 2px of cursor
-      const toRemove = [];
-      typhoonSignalBrushMarks.forEach((m, i) => {
-        const dist = map.latLngToContainerPoint(latlng).distanceTo(map.latLngToContainerPoint(m.getLatLng()));
-        if (dist <= 2) {
-          map.removeLayer(m);
-          toRemove.push(i);
-        }
-      });
-      // Remove from array (in reverse order)
-      for (let j = toRemove.length - 1; j >= 0; j--) {
-        typhoonSignalBrushMarks.splice(toRemove[j], 1);
-      }
-    } else if (selectedTyphoonSignalColor) {
-      const mark = L.circleMarker(latlng, {
-        radius: 2,
-        color: selectedTyphoonSignalColor,
-        fillColor: selectedTyphoonSignalColor,
-        fillOpacity: 1,
-        weight: 2,
-        interactive: false
-      }).addTo(map);
-      typhoonSignalBrushMarks.push(mark);
+  map.on('mouseup', function(e) {
+    if (drawingSignal) {
+      drawingSignal = false;
+      currentSignalLine = null;
     }
+  });
+  // Prevent map drag when drawing
+  map.on('mousedown', function(e) {
+    if (activeSignalBrush) map.dragging.disable();
+  });
+  map.on('mouseup', function(e) {
+    if (activeSignalBrush) map.dragging.enable();
+  });
+  // Clear all typhoon signal lines
+  const clearTyphoonSignalsBtn = document.getElementById('clearTyphoonSignalsBtn');
+  if (clearTyphoonSignalsBtn) {
+    clearTyphoonSignalsBtn.onclick = function() {
+      typhoonSignalLines.forEach(line => map.removeLayer(line));
+      typhoonSignalLines = [];
+    };
   }
 } 
