@@ -1620,13 +1620,25 @@ if (document.getElementById('map')) {
       }
     });
   });
+  // Cyclone Signal Brush Size Slider
+  let signalBrushSize = 3;
+  const signalBrushSizeSlider = document.getElementById('signalBrushSizeSlider');
+  const signalBrushSizeValue = document.getElementById('signalBrushSizeValue');
+  if (signalBrushSizeSlider && signalBrushSizeValue) {
+    signalBrushSizeSlider.value = signalBrushSize;
+    signalBrushSizeValue.textContent = signalBrushSize;
+    signalBrushSizeSlider.addEventListener('input', function() {
+      signalBrushSize = parseInt(signalBrushSizeSlider.value);
+      signalBrushSizeValue.textContent = signalBrushSize;
+    });
+  }
   // Drawing logic
   map.on('mousedown', function(e) {
     if (activeSignalBrush && !drawingSignal && typhoonSignalLinesVisible) {
       drawingSignal = true;
       currentSignalLine = L.polyline([e.latlng], {
         color: signalColors[activeSignalBrush],
-        weight: 3,
+        weight: signalBrushSize,
         opacity: 1,
         smoothFactor: 1.0,
         lineCap: 'round',
@@ -1709,7 +1721,7 @@ if (document.getElementById('map')) {
       drawingSignal = true;
       currentSignalLine = L.polyline([e.latlng], {
         color: signalColors[activeSignalBrush],
-        weight: 3,
+        weight: signalBrushSize,
         opacity: 1,
         smoothFactor: 1.0,
         lineCap: 'round',
