@@ -1552,6 +1552,14 @@ if (document.getElementById('map')) {
   map.on('zoomend moveend', redrawPointerCircleOverlays);
 
   // --- Typhoon Signal Brush Tool ---
+  let phBoundary = null;
+  // Load PH boundary as MultiPolygon
+  fetch('ph-provinces.json')
+    .then(res => res.json())
+    .then(data => {
+      // Union all provinces into a single MultiPolygon
+      phBoundary = turf.union(...data.features.map(f => turf.feature(f.geometry)));
+    });
   let activeSignalBrush = null;
   let drawingSignal = false;
   let currentSignalLine = null;
@@ -1598,6 +1606,11 @@ if (document.getElementById('map')) {
   });
   map.on('mousemove', function(e) {
     if (drawingSignal && currentSignalLine) {
+      // Only add point if inside PH
+      if (phBoundary) {
+        const pt = turf.point([e.latlng.lng, e.latlng.lat]);
+        if (!turf.booleanPointInPolygon(pt, phBoundary)) return;
+      }
       const latlngs = currentSignalLine.getLatLngs();
       latlngs.push(e.latlng);
       currentSignalLine.setLatLngs(latlngs);
