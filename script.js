@@ -849,11 +849,13 @@ if (document.getElementById('map')) {
 
   // Add layer control for Typhoon Track, Radar, Rainfall Advisory, and Satellite Imagery (as overlays)
   const dummySatelliteLayer = L.layerGroup();
+  const dummyTyphoonSignalLayer = L.layerGroup();
   const overlays = {
     'Typhoon Track': typhoonLayerGroup,
     'Radar': dummyRainviewerLayer,
     'Weather Advisory': rainfallAdvisoryLayerGroup,
-    'Satellite Imagery': dummySatelliteLayer
+    'Satellite Imagery': dummySatelliteLayer,
+    'Cyclone Signals': dummyTyphoonSignalLayer
   };
   L.control.layers(baseLayers, overlays, { position: 'topright', collapsed: false }).addTo(map);
 
@@ -892,6 +894,12 @@ if (document.getElementById('map')) {
       if (typhoonLegend) typhoonLegend.style.display = '';
       if (sourceBox) sourceBox.style.display = '';
     }
+    if (e.name === 'Cyclone Signals') {
+      var typhoonSignalLegend = document.getElementById('typhoon-signal-legend-box');
+      var typhoonSignalSourceBox = document.getElementById('typhoon-signal-source-box');
+      if (typhoonSignalLegend) typhoonSignalLegend.style.display = '';
+      if (typhoonSignalSourceBox) typhoonSignalSourceBox.style.display = '';
+    }
   });
   map.on('overlayremove', function(e) {
     if (e.name === 'Radar') hideRainviewerAnim();
@@ -919,6 +927,16 @@ if (document.getElementById('map')) {
       if (typhoonLegend) typhoonLegend.style.display = 'none';
       if (sourceBox) sourceBox.style.display = 'none';
     }
+    // REMOVE this block to prevent clearing typhoonSignalLines:
+    // if (e.name === 'Typhoon Signals') {
+    //   var typhoonSignalLegend = document.getElementById('typhoon-signal-legend-box');
+    //   var typhoonSignalSourceBox = document.getElementById('typhoon-signal-source-box');
+    //   if (typhoonSignalLegend) typhoonSignalLegend.style.display = 'none';
+    //   if (typhoonSignalSourceBox) typhoonSignalSourceBox.style.display = 'none';
+    //   // Also clear all signal lines
+    //   typhoonSignalLines.forEach(line => map.removeLayer(line));
+    //   typhoonSignalLines = [];
+    // }
   });
 
   // --- Leaflet Layer Control Toggle Button Logic ---
@@ -1553,13 +1571,26 @@ if (document.getElementById('map')) {
 
   // --- Typhoon Signal Brush Tool ---
   let phBoundary = null;
-  // Load PH boundary as MultiPolygon (not union)
+  // Load PH boundary as a single unioned MultiPolygon for Cyclone Signal tool
   fetch('ph-provinces.json')
     .then(res => res.json())
     .then(data => {
-      // Collect all polygons/multipolygons
-      const polys = data.features.map(f => f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates);
-      phBoundary = turf.multiPolygon([].concat(...polys));
+      // Union all province polygons into one
+      let unioned = null;
+      data.features.forEach((feature, idx) => {
+        const geom = feature.geometry;
+        let poly = null;
+        if (geom.type === 'Polygon') {
+          poly = turf.polygon(geom.coordinates);
+        } else if (geom.type === 'MultiPolygon') {
+          poly = turf.multiPolygon(geom.coordinates);
+        }
+        if (poly) {
+          if (!unioned) unioned = poly;
+          else unioned = turf.union(unioned, poly);
+        }
+      });
+      phBoundary = unioned;
     });
   let activeSignalBrush = null;
   let drawingSignal = false;
@@ -1591,7 +1622,7 @@ if (document.getElementById('map')) {
   });
   // Drawing logic
   map.on('mousedown', function(e) {
-    if (activeSignalBrush && !drawingSignal) {
+    if (activeSignalBrush && !drawingSignal && typhoonSignalLinesVisible) {
       drawingSignal = true;
       currentSignalLine = L.polyline([e.latlng], {
         color: signalColors[activeSignalBrush],
@@ -1638,4 +1669,54 @@ if (document.getElementById('map')) {
       typhoonSignalLines = [];
     };
   }
+
+  // Properly initialize the brush row
+  const typhoonSignalBrushRow = document.getElementById('typhoon-signal-brush-row');
+  // Show/hide typhoon signal brush row and lines based on overlay
+  let typhoonSignalLinesVisible = false;
+  let typhoonSignalLinesHidden = [];
+  map.on('overlayadd', function(e) {
+    if (e.name === 'Cyclone Signals') {
+      // Show legend/source for Cyclone Signals
+      var typhoonSignalLegend = document.getElementById('typhoon-signal-legend-box');
+      var typhoonSignalSourceBox = document.getElementById('typhoon-signal-source-box');
+      if (typhoonSignalLegend) typhoonSignalLegend.style.display = '';
+      if (typhoonSignalSourceBox) typhoonSignalSourceBox.style.display = '';
+      // Restore lines
+      typhoonSignalLinesVisible = true;
+      typhoonSignalLinesHidden.forEach(line => line.addTo(map));
+      typhoonSignalLines = typhoonSignalLines.concat(typhoonSignalLinesHidden);
+      typhoonSignalLinesHidden = [];
+    }
+  });
+  map.on('overlayremove', function(e) {
+    if (e.name === 'Cyclone Signals') {
+      // Hide legend/source for Cyclone Signals
+      var typhoonSignalLegend = document.getElementById('typhoon-signal-legend-box');
+      var typhoonSignalSourceBox = document.getElementById('typhoon-signal-source-box');
+      if (typhoonSignalLegend) typhoonSignalLegend.style.display = 'none';
+      if (typhoonSignalSourceBox) typhoonSignalSourceBox.style.display = 'none';
+      // Remove lines but keep in memory
+      typhoonSignalLinesVisible = false;
+      typhoonSignalLinesHidden = typhoonSignalLines;
+      typhoonSignalLines.forEach(line => map.removeLayer(line));
+      typhoonSignalLines = [];
+    }
+  });
+  // Only add new lines to map if visible
+  map.on('mousedown', function(e) {
+    if (activeSignalBrush && !drawingSignal && typhoonSignalLinesVisible) {
+      drawingSignal = true;
+      currentSignalLine = L.polyline([e.latlng], {
+        color: signalColors[activeSignalBrush],
+        weight: 3,
+        opacity: 1,
+        smoothFactor: 1.0,
+        lineCap: 'round',
+        lineJoin: 'round',
+        interactive: false
+      }).addTo(map);
+      typhoonSignalLines.push(currentSignalLine);
+    }
+  });
 } 
