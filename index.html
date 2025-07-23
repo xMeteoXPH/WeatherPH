@@ -106,6 +106,19 @@
               <input type="checkbox" id="toggleParLine" checked /> Show PAR Line
             </label>
           </div>
+          <!-- Typhoon Signal Brush Tool Row -->
+          <div id="typhoon-signal-brush-row" style="display:flex;gap:8px;align-items:center;margin-bottom:2px;">
+            <label style="display:flex;align-items:center;font-size:13px;font-weight:500;gap:4px;margin:0;">
+              <input type="checkbox" id="toggleTyphoonSignalBrush" /> Typhoon Signal Brush
+            </label>
+            <button id="signal1Btn" type="button" style="background:#12dfdc;width:22px;height:22px;border-radius:50%;border:2px solid #222;outline:none;cursor:pointer;"></button>
+            <button id="signal2Btn" type="button" style="background:yellow;width:22px;height:22px;border-radius:50%;border:2px solid #222;outline:none;cursor:pointer;"></button>
+            <button id="signal3Btn" type="button" style="background:orange;width:22px;height:22px;border-radius:50%;border:2px solid #222;outline:none;cursor:pointer;"></button>
+            <button id="signal4Btn" type="button" style="background:red;width:22px;height:22px;border-radius:50%;border:2px solid #222;outline:none;cursor:pointer;"></button>
+            <button id="signal5Btn" type="button" style="background:#ed20dc;width:22px;height:22px;border-radius:50%;border:2px solid #222;outline:none;cursor:pointer;"></button>
+            <button id="eraserBtn" type="button" style="background:#fff;width:22px;height:22px;border-radius:50%;border:2px solid #888;outline:none;cursor:pointer;">🧹</button>
+            <button id="clearTyphoonSignalsBtn" type="button" style="margin-left:8px;">Clear Typhoon Signals</button>
+          </div>
           <!-- Clear Buttons Row -->
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:2px;">
           <button id="clearPointsBtn" type="button">Remove All Points</button>
@@ -139,18 +152,6 @@
           <label style="margin-left:4px;font-size:12px;"><input type="checkbox" id="redWindDraggable"> Draggable</label>
           <button id="redWindSnapBtn" type="button" style="margin-left:4px;font-size:12px;padding:2px 8px;">Snap to Center</button>
           <button id="toggleRedWindBtn" type="button">Hide Red</button>
-        </div>
-        <!-- Typhoon Signal Brush Tool Row -->
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:2px;">
-          <label style="display:flex;align-items:center;font-size:13px;font-weight:500;gap:4px;margin:0;">
-            <input type="checkbox" id="toggleTyphoonSignalBrush" /> Typhoon Signal Brush
-          </label>
-          <button id="signal1Btn" type="button" style="background:#12dfdc;color:#222;border:1px solid #aaa;padding:2px 10px;font-weight:bold;">1</button>
-          <button id="signal2Btn" type="button" style="background:#ffe44c;color:#222;border:1px solid #aaa;padding:2px 10px;font-weight:bold;">2</button>
-          <button id="signal3Btn" type="button" style="background:#ff9900;color:#222;border:1px solid #aaa;padding:2px 10px;font-weight:bold;">3</button>
-          <button id="signal4Btn" type="button" style="background:#ff3333;color:#fff;border:1px solid #aaa;padding:2px 10px;font-weight:bold;">4</button>
-          <button id="signal5Btn" type="button" style="background:#ed20dc;color:#fff;border:1px solid #aaa;padding:2px 10px;font-weight:bold;">5</button>
-          <button id="clearTyphoonSignalsBtn" type="button" style="margin-left:6px;">Clear Typhoon Signals</button>
         </div>
     </div>
     </div>

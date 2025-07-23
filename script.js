@@ -1375,24 +1375,35 @@ if (document.getElementById('map')) {
 
   function styleProvince(feature) {
     const name = feature.properties && feature.properties.NAME_1;
+    // Typhoon Signal Brush takes precedence
+    if (typhoonSignalFills[name]) {
+      return {
+        color: '#444',
+        weight: 2.5,
+        fill: true,
+        fillColor: typhoonSignalFills[name],
+        fillOpacity: 0.85,
+        opacity: 0.95
+      };
+    }
+    // Weather Advisory fill
     let fillColor = 'rgba(0,0,0,0)';
     let fillOpacity = 0.1;
     if (filledProvinces[name]) {
-      // Brighter color mapping
-      if (filledProvinces[name] === '#ffe44c') fillColor = '#fff94c'; // Brighter yellow
-      else if (filledProvinces[name] === '#ffb84c') fillColor = '#ff9900'; // Brighter orange
-      else if (filledProvinces[name] === '#e74c3c') fillColor = '#ff3333'; // Brighter red
+      if (filledProvinces[name] === '#ffe44c') fillColor = '#fff94c';
+      else if (filledProvinces[name] === '#ffb84c') fillColor = '#ff9900';
+      else if (filledProvinces[name] === '#e74c3c') fillColor = '#ff3333';
       else fillColor = filledProvinces[name];
       fillOpacity = 0.85;
     }
-      return {
-        color: '#444',
-        weight: 0.5,
-        fill: true,
+    return {
+      color: '#444',
+      weight: 0.5,
+      fill: true,
       fillColor: fillColor,
       fillOpacity: fillOpacity,
-        opacity: 0.9
-      };
+      opacity: 0.9
+    };
   }
 
   function resetProvinceFills() {
@@ -1403,89 +1414,6 @@ if (document.getElementById('map')) {
 
   clearProvinceFillsBtn.onclick = resetProvinceFills;
 
-  // --- Typhoon Signal Brush Tool ---
-  let typhoonSignalBrushActive = false;
-  let selectedSignalColor = '#12dfdc';
-  let signalColors = {
-    1: '#12dfdc',
-    2: '#ffe44c',
-    3: '#ff9900',
-    4: '#ff3333',
-    5: '#ed20dc'
-  };
-  let filledSignals = {}; // { provinceName: color }
-  const toggleTyphoonSignalBrush = document.getElementById('toggleTyphoonSignalBrush');
-  if (toggleTyphoonSignalBrush) {
-    toggleTyphoonSignalBrush.addEventListener('change', function() {
-      typhoonSignalBrushActive = toggleTyphoonSignalBrush.checked;
-      if (typhoonSignalBrushActive) map.getContainer().style.cursor = 'cell';
-      else map.getContainer().style.cursor = '';
-    });
-  }
-  // Signal color buttons
-  const signalBtns = [
-    {id: 'signal1Btn', color: signalColors[1]},
-    {id: 'signal2Btn', color: signalColors[2]},
-    {id: 'signal3Btn', color: signalColors[3]},
-    {id: 'signal4Btn', color: signalColors[4]},
-    {id: 'signal5Btn', color: signalColors[5]}
-  ];
-  signalBtns.forEach(btn => {
-    const el = document.getElementById(btn.id);
-    if (el) {
-      el.onclick = function() {
-        selectedSignalColor = btn.color;
-        signalBtns.forEach(b2 => {
-          const el2 = document.getElementById(b2.id);
-          if (el2) el2.style.outline = (b2.id === btn.id) ? '2px solid #222' : '';
-        });
-      };
-    }
-  });
-  // Clear Typhoon Signals
-  const clearTyphoonSignalsBtn = document.getElementById('clearTyphoonSignalsBtn');
-  if (clearTyphoonSignalsBtn) {
-    clearTyphoonSignalsBtn.onclick = function() {
-      filledSignals = {};
-      if (provinceLayer) provinceLayer.setStyle(styleProvince);
-    };
-  }
-  // Update styleProvince to show typhoon signals if present
-  const origStyleProvince = styleProvince;
-  styleProvince = function(feature) {
-    const name = feature.properties && feature.properties.NAME_1;
-    if (filledSignals[name]) {
-      return {
-        color: '#444',
-        weight: 1.2,
-        fill: true,
-        fillColor: filledSignals[name],
-        fillOpacity: 0.85,
-        opacity: 0.95
-      };
-    }
-    // Fallback to original logic (Weather Advisory)
-    return origStyleProvince(feature);
-  };
-  // Province click for typhoon signal brush
-  function addTyphoonSignalBrushToProvinces() {
-    if (!provinceLayer) return;
-    provinceLayer.eachLayer(function(layer) {
-      layer.off('click'); // Remove previous click listeners
-      layer.on('click', function(e) {
-        if (typhoonSignalBrushActive) {
-          const name = layer.feature.properties && layer.feature.properties.NAME_1;
-          filledSignals[name] = selectedSignalColor;
-          provinceLayer.setStyle(styleProvince);
-          L.DomEvent.stopPropagation(e);
-        }
-      });
-    });
-  }
-  // Re-apply brush logic after provinceLayer is loaded
-  if (provinceLayer) addTyphoonSignalBrushToProvinces();
-  // Also after provinceLayer is loaded async
-  const origProvinceLayerAdd = provinceLayer && provinceLayer.addTo;
   fetch('ph-provinces.json')
     .then(res => res.json())
     .then(data => {
@@ -1501,9 +1429,9 @@ if (document.getElementById('map')) {
               clearProvinceFillsBtn.style.display = '';
               L.DomEvent.stopPropagation(e);
             }
-            if (typhoonSignalBrushActive) {
+            if (typhoonSignalBrushActive && selectedTyphoonSignalColor) {
               const name = feature.properties && feature.properties.NAME_1;
-              filledSignals[name] = selectedSignalColor;
+              typhoonSignalFills[name] = selectedTyphoonSignalColor;
               provinceLayer.setStyle(styleProvince);
               L.DomEvent.stopPropagation(e);
             }
@@ -1514,7 +1442,6 @@ if (document.getElementById('map')) {
       // Add to rainfallAdvisoryLayerGroup for toggling
       rainfallAdvisoryLayerGroup.addLayer(provinceLayer);
       rainfallAdvisoryLoaded = true;
-      addTyphoonSignalBrushToProvinces();
     })
     .catch(err => {
       console.warn('Province boundary file missing or invalid:', err);
@@ -1640,4 +1567,82 @@ if (document.getElementById('map')) {
     });
   }
   map.on('zoomend moveend', redrawPointerCircleOverlays);
+
+  // --- Typhoon Signal Brush Tool (Brush Mode) ---
+  let typhoonSignalBrushActive = false;
+  let selectedTyphoonSignalColor = null;
+  let typhoonSignalBrushMarks = [];
+  let isBrushing = false;
+  let eraserActive = false;
+  const typhoonSignalColors = {
+    signal1: '#12dfdc',
+    signal2: 'yellow',
+    signal3: 'orange',
+    signal4: 'red',
+    signal5: '#ed20dc'
+  };
+  const toggleTyphoonSignalBrush = document.getElementById('toggleTyphoonSignalBrush');
+  if (toggleTyphoonSignalBrush) {
+    toggleTyphoonSignalBrush.addEventListener('change', function() {
+      typhoonSignalBrushActive = toggleTyphoonSignalBrush.checked;
+      map.getContainer().style.cursor = typhoonSignalBrushActive ? 'crosshair' : '';
+    });
+  }
+  function setSignalBtnActive(btnId) {
+    ['signal1Btn','signal2Btn','signal3Btn','signal4Btn','signal5Btn','eraserBtn'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) btn.style.outline = (id === btnId) ? '3px solid #333' : 'none';
+    });
+  }
+  document.getElementById('signal1Btn')?.addEventListener('click', function() { selectedTyphoonSignalColor = typhoonSignalColors.signal1; eraserActive = false; setSignalBtnActive('signal1Btn'); });
+  document.getElementById('signal2Btn')?.addEventListener('click', function() { selectedTyphoonSignalColor = typhoonSignalColors.signal2; eraserActive = false; setSignalBtnActive('signal2Btn'); });
+  document.getElementById('signal3Btn')?.addEventListener('click', function() { selectedTyphoonSignalColor = typhoonSignalColors.signal3; eraserActive = false; setSignalBtnActive('signal3Btn'); });
+  document.getElementById('signal4Btn')?.addEventListener('click', function() { selectedTyphoonSignalColor = typhoonSignalColors.signal4; eraserActive = false; setSignalBtnActive('signal4Btn'); });
+  document.getElementById('signal5Btn')?.addEventListener('click', function() { selectedTyphoonSignalColor = typhoonSignalColors.signal5; eraserActive = false; setSignalBtnActive('signal5Btn'); });
+  document.getElementById('eraserBtn')?.addEventListener('click', function() { selectedTyphoonSignalColor = null; eraserActive = true; setSignalBtnActive('eraserBtn'); });
+  document.getElementById('clearTyphoonSignalsBtn')?.addEventListener('click', function() {
+    typhoonSignalBrushMarks.forEach(m => map.removeLayer(m));
+    typhoonSignalBrushMarks = [];
+  });
+  // Brush painting logic
+  map.on('mousedown', function(e) {
+    if (typhoonSignalBrushActive && (selectedTyphoonSignalColor || eraserActive)) {
+      isBrushing = true;
+      paintTyphoonSignalBrush(e.latlng);
+    }
+  });
+  map.on('mousemove', function(e) {
+    if (isBrushing && typhoonSignalBrushActive && (selectedTyphoonSignalColor || eraserActive)) {
+      paintTyphoonSignalBrush(e.latlng);
+    }
+  });
+  map.on('mouseup', function() { isBrushing = false; });
+  map.on('mouseout', function() { isBrushing = false; });
+  function paintTyphoonSignalBrush(latlng) {
+    if (eraserActive) {
+      // Remove marks within 2px of cursor
+      const toRemove = [];
+      typhoonSignalBrushMarks.forEach((m, i) => {
+        const dist = map.latLngToContainerPoint(latlng).distanceTo(map.latLngToContainerPoint(m.getLatLng()));
+        if (dist <= 2) {
+          map.removeLayer(m);
+          toRemove.push(i);
+        }
+      });
+      // Remove from array (in reverse order)
+      for (let j = toRemove.length - 1; j >= 0; j--) {
+        typhoonSignalBrushMarks.splice(toRemove[j], 1);
+      }
+    } else if (selectedTyphoonSignalColor) {
+      const mark = L.circleMarker(latlng, {
+        radius: 2,
+        color: selectedTyphoonSignalColor,
+        fillColor: selectedTyphoonSignalColor,
+        fillOpacity: 1,
+        weight: 2,
+        interactive: false
+      }).addTo(map);
+      typhoonSignalBrushMarks.push(mark);
+    }
+  }
 } 
