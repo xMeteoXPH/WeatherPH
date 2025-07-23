@@ -45,8 +45,8 @@
       <div id="controls-row">
         <div class="controls-group-row" id="controls-row-1" style="display:flex;flex-direction:column;gap:4px;">
           <form id="typhoonPointForm" class="typhoon-point-form vertical-form" style="margin-bottom:2px;">
-            <input type="number" step="any" id="latInput" placeholder="Latitude" required />
-            <input type="number" step="any" id="lonInput" placeholder="Longitude" required />
+          <input type="number" step="any" id="latInput" placeholder="Latitude" required />
+          <input type="number" step="any" id="lonInput" placeholder="Longitude" required />
             <select id="weekdayInput" required>
               <option value="" disabled selected>Weekday</option>
               <option value="Monday">Monday</option>
@@ -95,8 +95,8 @@
               <option value="STY -">STY -</option>
               <option value="LPA -">LPA -</option>
             </select>
-            <button type="submit">Add Point</button>
-          </form>
+          <button type="submit">Add Point</button>
+        </form>
           <!-- Toggles Row -->
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:2px;">
             <label style="display:flex;align-items:center;font-size:13px;font-weight:500;gap:4px;margin:0;">
@@ -108,14 +108,14 @@
           </div>
           <!-- Clear Buttons Row -->
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:2px;">
-            <button id="clearPointsBtn" type="button">Remove All Points</button>
+          <button id="clearPointsBtn" type="button">Remove All Points</button>
             <button id="deleteSelectedBtn" type="button">Delete Selected Point</button>
             <button id="clearPointerCirclesBtn" type="button">Clear Pointer Circles</button>
           </div>
           <div id="delete-controls" style="margin-bottom:2px;">
-            <select id="pointSelect"></select>
-          </div>
+          <select id="pointSelect"></select>
         </div>
+      </div>
         <div class="controls-group-row" id="controls-row-2">
           <button id="insertImageBtn" type="button">Insert Image</button>
           <input type="file" id="imageFileInput" accept="image/*" style="display:none;">
@@ -139,6 +139,20 @@
           <label style="margin-left:4px;font-size:12px;"><input type="checkbox" id="redWindDraggable"> Draggable</label>
           <button id="redWindSnapBtn" type="button" style="margin-left:4px;font-size:12px;padding:2px 8px;">Snap to Center</button>
           <button id="toggleRedWindBtn" type="button">Hide Red</button>
+        </div>
+        <!-- Typhoon Signal Fill Tool Controls -->
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:2px;">
+          <label style="display:flex;align-items:center;font-size:13px;font-weight:500;gap:4px;margin:0;">
+            <input type="checkbox" id="toggleSignalFillTool" /> Typhoon Signal Fill
+          </label>
+          <button id="clearSignalFillsBtn" type="button">Clear Signal Fills</button>
+        </div>
+        <div id="signalColorPickerRow" style="display:none;gap:6px;margin-bottom:2px;align-items:center;">
+          <button id="signal1Btn" type="button" style="background:#12dfdc;color:#222;border:1px solid #aaa;padding:2px 10px;font-weight:bold;">Signal 1</button>
+          <button id="signal2Btn" type="button" style="background:yellow;color:#222;border:1px solid #aaa;padding:2px 10px;font-weight:bold;">Signal 2</button>
+          <button id="signal3Btn" type="button" style="background:orange;color:#222;border:1px solid #aaa;padding:2px 10px;font-weight:bold;">Signal 3</button>
+          <button id="signal4Btn" type="button" style="background:red;color:#fff;border:1px solid #aaa;padding:2px 10px;font-weight:bold;">Signal 4</button>
+          <button id="signal5Btn" type="button" style="background:#ed20dc;color:#fff;border:1px solid #aaa;padding:2px 10px;font-weight:bold;">Signal 5</button>
         </div>
     </div>
     </div>

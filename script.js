@@ -865,8 +865,8 @@ if (document.getElementById('map')) {
       rainviewerActive = true;
       fetchRainviewerFrames(() => {
         rainviewerFrameIdx = 0;
-        showRainviewerAnim();
-      });
+          showRainviewerAnim();
+        });
     }
     if (e.name === 'Weather Advisory') {
       if (provinceLayer && !rainfallAdvisoryLayerGroup.hasLayer(provinceLayer)) {
@@ -1377,22 +1377,26 @@ if (document.getElementById('map')) {
     const name = feature.properties && feature.properties.NAME_1;
     let fillColor = 'rgba(0,0,0,0)';
     let fillOpacity = 0.1;
-    if (filledProvinces[name]) {
-      // Brighter color mapping
+    // Typhoon Signal Fill takes priority if present
+    if (filledSignalProvinces[name]) {
+      fillColor = filledSignalProvinces[name];
+      fillOpacity = 0.85;
+    } else if (filledProvinces[name]) {
+      // Brighter color mapping for Weather Advisory
       if (filledProvinces[name] === '#ffe44c') fillColor = '#fff94c'; // Brighter yellow
       else if (filledProvinces[name] === '#ffb84c') fillColor = '#ff9900'; // Brighter orange
       else if (filledProvinces[name] === '#e74c3c') fillColor = '#ff3333'; // Brighter red
       else fillColor = filledProvinces[name];
       fillOpacity = 0.85;
     }
-    return {
-      color: '#444',
-      weight: 0.5,
-      fill: true,
+      return {
+        color: '#444',
+        weight: 0.5,
+        fill: true,
       fillColor: fillColor,
       fillOpacity: fillOpacity,
-      opacity: 0.9
-    };
+        opacity: 0.9
+      };
   }
 
   function resetProvinceFills() {
@@ -1403,6 +1407,42 @@ if (document.getElementById('map')) {
 
   clearProvinceFillsBtn.onclick = resetProvinceFills;
 
+  // --- Typhoon Signal Fill Tool ---
+  let signalFillActive = false;
+  let selectedSignalColor = '#12dfdc';
+  let filledSignalProvinces = {}; // { provinceName: color }
+  const toggleSignalFillTool = document.getElementById('toggleSignalFillTool');
+  const signalColorPickerRow = document.getElementById('signalColorPickerRow');
+  if (toggleSignalFillTool) {
+    toggleSignalFillTool.addEventListener('change', function() {
+      signalFillActive = toggleSignalFillTool.checked;
+      signalColorPickerRow.style.display = signalFillActive ? 'flex' : 'none';
+      if (signalFillActive) {
+        magicFillActive = false;
+        magicFillBtn && (magicFillBtn.checked = false);
+        colorPickerRow && (colorPickerRow.style.display = 'none');
+      }
+    });
+  }
+  // Signal color buttons
+  const signal1Btn = document.getElementById('signal1Btn');
+  const signal2Btn = document.getElementById('signal2Btn');
+  const signal3Btn = document.getElementById('signal3Btn');
+  const signal4Btn = document.getElementById('signal4Btn');
+  const signal5Btn = document.getElementById('signal5Btn');
+  if (signal1Btn) signal1Btn.onclick = () => { selectedSignalColor = '#12dfdc'; };
+  if (signal2Btn) signal2Btn.onclick = () => { selectedSignalColor = 'yellow'; };
+  if (signal3Btn) signal3Btn.onclick = () => { selectedSignalColor = 'orange'; };
+  if (signal4Btn) signal4Btn.onclick = () => { selectedSignalColor = 'red'; };
+  if (signal5Btn) signal5Btn.onclick = () => { selectedSignalColor = '#ed20dc'; };
+  // Clear Signal Fills
+  const clearSignalFillsBtn = document.getElementById('clearSignalFillsBtn');
+  function resetSignalFills() {
+    filledSignalProvinces = {};
+    if (provinceLayer) provinceLayer.setStyle(styleProvince);
+  }
+  if (clearSignalFillsBtn) clearSignalFillsBtn.onclick = resetSignalFills;
+
   fetch('ph-provinces.json')
     .then(res => res.json())
     .then(data => {
@@ -1410,6 +1450,7 @@ if (document.getElementById('map')) {
         style: styleProvince,
         onEachFeature: function(feature, layer) {
           layer.options.className = (layer.options.className || '') + ' leaflet-province-outline';
+          // Magic Fill
           layer.on('click', function(e) {
             if (magicFillActive && !drawingHighlight) {
               const name = feature.properties && feature.properties.NAME_1;
@@ -1419,6 +1460,8 @@ if (document.getElementById('map')) {
               L.DomEvent.stopPropagation(e);
             }
           });
+          // Typhoon Signal Fill
+          addSignalFillHandlerToLayer(layer, feature);
         },
         interactive: true
       });
@@ -1550,4 +1593,72 @@ if (document.getElementById('map')) {
     });
   }
   map.on('zoomend moveend', redrawPointerCircleOverlays);
+
+  // --- Typhoon Signal LayerGroup for overlay control ---
+  const typhoonSignalLayerGroup = L.layerGroup();
+
+  // Add Typhoon Signals to overlays
+  overlays['Typhoon Signals'] = typhoonSignalLayerGroup;
+
+  // Update provinceLayer to add/remove from typhoonSignalLayerGroup
+  function updateTyphoonSignalLayer() {
+    typhoonSignalLayerGroup.clearLayers();
+    if (!provinceLayer) return;
+    provinceLayer.eachLayer(function(layer) {
+      const name = layer.feature && layer.feature.properties && layer.feature.properties.NAME_1;
+      if (filledSignalProvinces[name]) {
+        // Clone the layer with only the signal fill
+        const signalFill = L.geoJSON(layer.feature, {
+          style: function() {
+            return {
+              color: '#444',
+              weight: 0.5,
+              fill: true,
+              fillColor: filledSignalProvinces[name],
+              fillOpacity: 0.85,
+              opacity: 0.9
+            };
+          },
+          interactive: false
+        });
+        signalFill.addTo(typhoonSignalLayerGroup);
+      }
+    });
+  }
+
+  // Update signal layer on fill change
+  function updateSignalFillsAndLayer() {
+    if (provinceLayer) provinceLayer.setStyle(styleProvince);
+    updateTyphoonSignalLayer();
+  }
+  // Patch all signal fill changes to call updateSignalFillsAndLayer
+  function resetSignalFills() {
+    filledSignalProvinces = {};
+    updateSignalFillsAndLayer();
+  }
+  // Patch signal fill click handler
+  function addSignalFillHandlerToLayer(layer, feature) {
+    layer.on('click', function(e) {
+      if (signalFillActive && !drawingHighlight) {
+        const name = feature.properties && feature.properties.NAME_1;
+        filledSignalProvinces[name] = selectedSignalColor;
+        updateSignalFillsAndLayer();
+        clearSignalFillsBtn.style.display = '';
+        L.DomEvent.stopPropagation(e);
+      }
+    });
+  }
+  // Update signal layer on load and on overlayadd/overlayremove
+  map.on('overlayadd', function(e) {
+    if (e.name === 'Typhoon Signals') {
+      updateTyphoonSignalLayer();
+      typhoonSignalLayerGroup.addTo(map);
+    }
+  });
+  map.on('overlayremove', function(e) {
+    if (e.name === 'Typhoon Signals') {
+      typhoonSignalLayerGroup.clearLayers();
+      map.removeLayer(typhoonSignalLayerGroup);
+    }
+  });
 } 
