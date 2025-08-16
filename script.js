@@ -1636,9 +1636,15 @@ if (document.getElementById('map')) {
   map.on('mousedown', function(e) {
     if (activeSignalBrush && !drawingSignal && typhoonSignalLinesVisible) {
       drawingSignal = true;
+      // Calculate weight that scales with zoom to maintain consistent geographic coverage
+      const baseWeight = signalBrushSize;
+      const currentZoom = map.getZoom();
+      const zoomFactor = Math.pow(2, currentZoom - 4); // Base zoom is 4
+      const scaledWeight = Math.max(1, baseWeight / zoomFactor);
+      
       currentSignalLine = L.polyline([e.latlng], {
         color: signalColors[activeSignalBrush],
-        weight: signalBrushSize,
+        weight: scaledWeight,
         opacity: 1,
         smoothFactor: 1.0,
         lineCap: 'round',
@@ -1730,5 +1736,5 @@ if (document.getElementById('map')) {
       }).addTo(map);
       typhoonSignalLines.push(currentSignalLine);
     }
-  });
+    });
 } 
