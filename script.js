@@ -1639,7 +1639,8 @@ if (document.getElementById('map')) {
       // Calculate weight that scales with zoom to maintain consistent geographic coverage
       const baseWeight = signalBrushSize;
       const currentZoom = map.getZoom();
-      const zoomFactor = Math.pow(2, currentZoom - 4); // Base zoom is 4
+      // More aggressive scaling for larger brush sizes to prevent blob effect
+      const zoomFactor = Math.pow(1.8, currentZoom - 4);
       const scaledWeight = Math.max(1, baseWeight / zoomFactor);
       
       currentSignalLine = L.polyline([e.latlng], {
