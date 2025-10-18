@@ -1557,9 +1557,14 @@ if (document.getElementById('map')) {
   }
   // Track if any dashed circle is being edited
   let anyDashedCircleEditing = false;
+  let preventMapClick = false;
 
   // Add pointer circle on map click if tool is active
   map.on('click', function(e) {
+    if (preventMapClick) {
+      preventMapClick = false;
+      return;
+    }
     if (pointerCircleToolActive) {
       const overlay = createPointerCircleOverlay(e.latlng, 120000);
       pointerCircleOverlays.push(overlay);
@@ -1591,6 +1596,8 @@ if (document.getElementById('map')) {
           isEditing = false;
           anyDashedCircleEditing = false;
           circle.setStyle({color: '#fff'});
+          // Prevent the next map click from creating a new circle
+          preventMapClick = true;
         } else {
           // Enable editing
           isEditing = true;
