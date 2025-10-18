@@ -15,7 +15,6 @@
       <div id="map">
         <img src="meteox.png" alt="MeteoX Logo" style="position:absolute;top:10px;left:10px;z-index:1004;width:120px;height:auto;opacity:0.92;pointer-events:none;" />
         <button id="mapSizeToggleBtn" type="button">⛶</button>
-        <div id="map-source-box" style="position:absolute;bottom:225px;left:12px;z-index:1004;background:rgba(30,30,30,0.95);color:#fff;border-radius:8px;padding:5px 8px;font-size:10px;box-shadow:0 2px 8px rgba(0,0,0,0.12);opacity:0.9;">Source: Japan Meteorological Agency</div>
         <div id="map-legend-box" style="position:absolute;bottom:12px;left:12px;z-index:1004;background:rgba(30,30,30,0.95);color:#fff;border-radius:8px;padding:7px 9px;font-size:11px;box-shadow:0 2px 8px rgba(0,0,0,0.12);min-width:120px;max-width:180px;">
           <div style="font-weight:bold;font-size:12px;margin-bottom:4px;">Legend</div>
           <div style="display:flex;align-items:center;margin-bottom:2px;"><span style="display:inline-block;width:12px;height:7px;background:#a67c52;border-radius:3px;margin-right:6px;"></span>55 km/h wind or higher</div>
@@ -41,22 +40,12 @@
           <div style="display:flex;align-items:center;margin-bottom:2px;"><span style="display:inline-block;width:14px;height:10px;background:#ffb84c;border-radius:3px;margin-right:6px;"></span>Orange: 100-200 mm</div>
           <div style="display:flex;align-items:center;margin-bottom:2px;"><span style="display:inline-block;width:14px;height:10px;background:#e74c3c;border-radius:3px;margin-right:6px;"></span>Red: 200+ mm</div>
         </div>
-        <!-- Cyclone Signal Legend (hidden by default) -->
-        <div id="typhoon-signal-legend-box" style="position:absolute;bottom:12px;left:12px;z-index:1005;background:rgba(30,30,30,0.95);color:#fff;border-radius:8px;padding:7px 9px;font-size:11px;box-shadow:0 2px 8px rgba(0,0,0,0.12);min-width:120px;max-width:180px;display:none;">
-          <div style="font-weight:bold;font-size:12px;margin-bottom:4px;">Cyclone Signals</div>
-          <div style="display:flex;align-items:center;margin-bottom:2px;"><span style="display:inline-block;width:14px;height:10px;background:#12dfdc;border-radius:3px;margin-right:6px;"></span>Signal 1</div>
-          <div style="display:flex;align-items:center;margin-bottom:2px;"><span style="display:inline-block;width:14px;height:10px;background:yellow;border-radius:3px;margin-right:6px;"></span>Signal 2</div>
-          <div style="display:flex;align-items:center;margin-bottom:2px;"><span style="display:inline-block;width:14px;height:10px;background:orange;border-radius:3px;margin-right:6px;"></span>Signal 3</div>
-          <div style="display:flex;align-items:center;margin-bottom:2px;"><span style="display:inline-block;width:14px;height:10px;background:red;border-radius:3px;margin-right:6px;"></span>Signal 4</div>
-          <div style="display:flex;align-items:center;margin-bottom:2px;"><span style="display:inline-block;width:14px;height:10px;background:#ed20dc;border-radius:3px;margin-right:6px;"></span>Signal 5</div>
-        </div>
-        <div id="typhoon-signal-source-box" style="position:absolute;bottom:147px;left:12px;z-index:1005;background:rgba(30,30,30,0.95);color:#fff;border-radius:8px;padding:5px 8px;font-size:10px;box-shadow:0 2px 8px rgba(0,0,0,0.12);opacity:0.9;display:none;">Source: PAGASA</div>
       </div>
       <div id="controls-row">
         <div class="controls-group-row" id="controls-row-1" style="display:flex;flex-direction:column;gap:4px;">
           <form id="typhoonPointForm" class="typhoon-point-form vertical-form" style="margin-bottom:2px;">
-          <input type="number" step="any" id="latInput" placeholder="Latitude" required />
-          <input type="number" step="any" id="lonInput" placeholder="Longitude" required />
+            <input type="number" step="any" id="latInput" placeholder="Latitude" required />
+            <input type="number" step="any" id="lonInput" placeholder="Longitude" required />
             <select id="weekdayInput" required>
               <option value="" disabled selected>Weekday</option>
               <option value="Monday">Monday</option>
@@ -105,8 +94,8 @@
               <option value="STY -">STY -</option>
               <option value="LPA -">LPA -</option>
             </select>
-          <button type="submit">Add Point</button>
-        </form>
+            <button type="submit">Add Point</button>
+          </form>
           <!-- Toggles Row -->
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:2px;">
             <label style="display:flex;align-items:center;font-size:13px;font-weight:500;gap:4px;margin:0;">
@@ -115,29 +104,21 @@
             <label style="display:flex;align-items:center;font-size:13px;font-weight:500;gap:4px;margin:0;">
               <input type="checkbox" id="toggleParLine" checked /> Show PAR Line
             </label>
-          </div>
-          <!-- Typhoon Signal Brush Row -->
-          <div id="typhoon-signal-brush-row" style="display:flex;gap:8px;align-items:center;margin-bottom:2px;">
-            <label for="signalBrushSizeSlider" style="font-size:12px;margin-right:4px;">Brush Size</label>
-            <input type="range" id="signalBrushSizeSlider" min="2" max="30" step="1" value="3" style="width:70px;">
-            <span id="signalBrushSizeValue" style="font-size:12px;width:18px;display:inline-block;text-align:center;">3</span>
-            <button type="button" class="signal-brush-btn" data-signal="1" style="background:#12dfdc;color:#222;font-weight:bold;">Signal 1</button>
-            <button type="button" class="signal-brush-btn" data-signal="2" style="background:yellow;color:#222;font-weight:bold;">Signal 2</button>
-            <button type="button" class="signal-brush-btn" data-signal="3" style="background:orange;color:#222;font-weight:bold;">Signal 3</button>
-            <button type="button" class="signal-brush-btn" data-signal="4" style="background:red;color:#fff;font-weight:bold;">Signal 4</button>
-            <button type="button" class="signal-brush-btn" data-signal="5" style="background:#ed20dc;color:#fff;font-weight:bold;">Signal 5</button>
-            <button type="button" id="clearTyphoonSignalsBtn" style="margin-left:8px;">Clear Typhoon Signals</button>
+            <label style="display:flex;align-items:center;font-size:13px;font-weight:500;gap:4px;margin:0;">
+              <input type="checkbox" id="toggleDashedCircleTool" /> Dashed Circle Tool
+            </label>
           </div>
           <!-- Clear Buttons Row -->
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:2px;">
-          <button id="clearPointsBtn" type="button">Remove All Points</button>
+            <button id="clearPointsBtn" type="button">Remove All Points</button>
             <button id="deleteSelectedBtn" type="button">Delete Selected Point</button>
             <button id="clearPointerCirclesBtn" type="button">Clear Pointer Circles</button>
+            <button id="clearDashedCirclesBtn" type="button">Clear Dashed Circles</button>
           </div>
           <div id="delete-controls" style="margin-bottom:2px;">
-          <select id="pointSelect"></select>
+            <select id="pointSelect"></select>
+          </div>
         </div>
-      </div>
         <div class="controls-group-row" id="controls-row-2">
           <button id="insertImageBtn" type="button">Insert Image</button>
           <input type="file" id="imageFileInput" accept="image/*" style="display:none;">
@@ -172,8 +153,8 @@
   <script src="https://unpkg.com/leaflet-editable@1.2.0/src/Leaflet.Editable.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/mwasil/Leaflet.Rainviewer/leaflet.rainviewer.js"></script>
-  <!-- Turf.js for point-in-polygon -->
-  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+  <!-- Himawari-8 plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-himawari@1.0.2/dist/leaflet-himawari.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

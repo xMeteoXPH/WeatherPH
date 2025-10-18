@@ -849,13 +849,11 @@ if (document.getElementById('map')) {
 
   // Add layer control for Typhoon Track, Radar, Rainfall Advisory, and Satellite Imagery (as overlays)
   const dummySatelliteLayer = L.layerGroup();
-  const dummyTyphoonSignalLayer = L.layerGroup();
   const overlays = {
     'Typhoon Track': typhoonLayerGroup,
     'Radar': dummyRainviewerLayer,
     'Weather Advisory': rainfallAdvisoryLayerGroup,
-    'Satellite Imagery': dummySatelliteLayer,
-    'Cyclone Signals': dummyTyphoonSignalLayer
+    'Satellite Imagery': dummySatelliteLayer
   };
   L.control.layers(baseLayers, overlays, { position: 'topright', collapsed: false }).addTo(map);
 
@@ -867,8 +865,8 @@ if (document.getElementById('map')) {
       rainviewerActive = true;
       fetchRainviewerFrames(() => {
         rainviewerFrameIdx = 0;
-          showRainviewerAnim();
-        });
+        showRainviewerAnim();
+      });
     }
     if (e.name === 'Weather Advisory') {
       if (provinceLayer && !rainfallAdvisoryLayerGroup.hasLayer(provinceLayer)) {
@@ -893,12 +891,6 @@ if (document.getElementById('map')) {
       var sourceBox = document.getElementById('map-source-box');
       if (typhoonLegend) typhoonLegend.style.display = '';
       if (sourceBox) sourceBox.style.display = '';
-    }
-    if (e.name === 'Cyclone Signals') {
-      var typhoonSignalLegend = document.getElementById('typhoon-signal-legend-box');
-      var typhoonSignalSourceBox = document.getElementById('typhoon-signal-source-box');
-      if (typhoonSignalLegend) typhoonSignalLegend.style.display = '';
-      if (typhoonSignalSourceBox) typhoonSignalSourceBox.style.display = '';
     }
   });
   map.on('overlayremove', function(e) {
@@ -927,16 +919,6 @@ if (document.getElementById('map')) {
       if (typhoonLegend) typhoonLegend.style.display = 'none';
       if (sourceBox) sourceBox.style.display = 'none';
     }
-    // REMOVE this block to prevent clearing typhoonSignalLines:
-    // if (e.name === 'Typhoon Signals') {
-    //   var typhoonSignalLegend = document.getElementById('typhoon-signal-legend-box');
-    //   var typhoonSignalSourceBox = document.getElementById('typhoon-signal-source-box');
-    //   if (typhoonSignalLegend) typhoonSignalLegend.style.display = 'none';
-    //   if (typhoonSignalSourceBox) typhoonSignalSourceBox.style.display = 'none';
-    //   // Also clear all signal lines
-    //   typhoonSignalLines.forEach(line => map.removeLayer(line));
-    //   typhoonSignalLines = [];
-    // }
   });
 
   // --- Leaflet Layer Control Toggle Button Logic ---
@@ -1403,14 +1385,14 @@ if (document.getElementById('map')) {
       else fillColor = filledProvinces[name];
       fillOpacity = 0.85;
     }
-      return {
-        color: '#444',
-        weight: 0.5,
-        fill: true,
+    return {
+      color: '#444',
+      weight: 0.5,
+      fill: true,
       fillColor: fillColor,
       fillOpacity: fillOpacity,
-        opacity: 0.9
-      };
+      opacity: 0.9
+    };
   }
 
   function resetProvinceFills() {
@@ -1494,6 +1476,17 @@ if (document.getElementById('map')) {
       map.getContainer().style.cursor = pointerCircleToolActive ? 'crosshair' : '';
     });
   }
+
+  // --- Dashed Circle Tool ---
+  let dashedCircleToolActive = false;
+  let dashedCircles = [];
+  const toggleDashedCircleTool = document.getElementById('toggleDashedCircleTool');
+  if (toggleDashedCircleTool) {
+    toggleDashedCircleTool.addEventListener('change', function() {
+      dashedCircleToolActive = toggleDashedCircleTool.checked;
+      map.getContainer().style.cursor = dashedCircleToolActive ? 'crosshair' : '';
+    });
+  }
   // Add Clear Pointer Circles button
   const clearPointerCirclesBtn = document.createElement('button');
   clearPointerCirclesBtn.textContent = 'Clear Pointer Circles';
@@ -1504,6 +1497,16 @@ if (document.getElementById('map')) {
   clearPointerCirclesBtn.onclick = function() {
     pointerCircleOverlays.forEach(o => map.removeLayer(o));
     pointerCircleOverlays = [];
+  };
+  // Add Clear Dashed Circles button
+  const clearDashedCirclesBtn = document.createElement('button');
+  clearDashedCirclesBtn.textContent = 'Clear Dashed Circles';
+  clearDashedCirclesBtn.type = 'button';
+  clearDashedCirclesBtn.style.margin = '6px';
+  if (controlsRow1) controlsRow1.appendChild(clearDashedCirclesBtn);
+  clearDashedCirclesBtn.onclick = function() {
+    dashedCircles.forEach(c => map.removeLayer(c));
+    dashedCircles = [];
   };
   // Helper to create SVG overlay for pointer circle + L
   function createPointerCircleOverlay(latlng, radiusMeters) {
@@ -1552,11 +1555,83 @@ if (document.getElementById('map')) {
     overlay.addTo(map);
     return overlay;
   }
+  // Track if any dashed circle is being edited
+  let anyDashedCircleEditing = false;
+
   // Add pointer circle on map click if tool is active
   map.on('click', function(e) {
     if (pointerCircleToolActive) {
       const overlay = createPointerCircleOverlay(e.latlng, 120000);
       pointerCircleOverlays.push(overlay);
+    }
+    if (dashedCircleToolActive && !anyDashedCircleEditing) {
+      const circle = L.circle(e.latlng, {
+        radius: 100000, // 100km default
+        color: '#fff',
+        weight: 2,
+        fill: false,
+        dashArray: '10 10',
+        interactive: true
+      }).addTo(map);
+      
+      // Add resize handles using a custom approach
+      let isEditing = false;
+      let resizeHandle = null;
+      
+      circle.on('click', function(e) {
+        // Prevent the click from bubbling up to the map
+        L.DomEvent.stopPropagation(e.originalEvent);
+        
+        if (isEditing) {
+          // Disable editing
+          if (resizeHandle) {
+            map.removeLayer(resizeHandle);
+            resizeHandle = null;
+          }
+          isEditing = false;
+          anyDashedCircleEditing = false;
+          circle.setStyle({color: '#fff'});
+        } else {
+          // Enable editing
+          isEditing = true;
+          anyDashedCircleEditing = true;
+          circle.setStyle({color: '#ff0000'});
+          
+          // Create a resize handle (small circle at the edge)
+          const handlePos = L.latLng(
+            circle.getLatLng().lat + (circle.getRadius() / 111320), // Convert meters to degrees
+            circle.getLatLng().lng
+          );
+          
+          resizeHandle = L.marker(handlePos, {
+            draggable: true,
+            icon: L.divIcon({
+              className: 'resize-handle',
+              html: '<div style="width:12px;height:12px;background:#ff0000;border:2px solid #fff;border-radius:50%;cursor:move;"></div>',
+              iconSize: [12, 12],
+              iconAnchor: [6, 6]
+            })
+          }).addTo(map);
+          
+          // Make handle draggable and update circle radius
+          resizeHandle.on('drag', function(e) {
+            const newRadius = map.distance(circle.getLatLng(), e.latlng);
+            circle.setRadius(newRadius);
+          });
+          
+          // Update handle position when circle radius changes
+          circle.on('radiuschange', function() {
+            if (resizeHandle) {
+              const currentRadius = circle.getRadius();
+              const handleLat = circle.getLatLng().lat + (currentRadius / 111320);
+              const handleLng = circle.getLatLng().lng;
+              resizeHandle.setLatLng([handleLat, handleLng]);
+            }
+          });
+        }
+      });
+      
+      dashedCircles.push(circle);
     }
   });
   // On zoom or move, redraw all overlays
@@ -1568,174 +1643,4 @@ if (document.getElementById('map')) {
     });
   }
   map.on('zoomend moveend', redrawPointerCircleOverlays);
-
-  // --- Typhoon Signal Brush Tool ---
-  let phBoundary = null;
-  // Load PH boundary as a single unioned MultiPolygon for Cyclone Signal tool
-  fetch('ph-provinces.json')
-    .then(res => res.json())
-    .then(data => {
-      // Union all province polygons into one
-      let unioned = null;
-      data.features.forEach((feature, idx) => {
-        const geom = feature.geometry;
-        let poly = null;
-        if (geom.type === 'Polygon') {
-          poly = turf.polygon(geom.coordinates);
-        } else if (geom.type === 'MultiPolygon') {
-          poly = turf.multiPolygon(geom.coordinates);
-        }
-        if (poly) {
-          if (!unioned) unioned = poly;
-          else unioned = turf.union(unioned, poly);
-        }
-      });
-      phBoundary = unioned;
-    });
-  let activeSignalBrush = null;
-  let drawingSignal = false;
-  let currentSignalLine = null;
-  let typhoonSignalLines = [];
-  const signalColors = {
-    1: '#12dfdc',
-    2: 'yellow',
-    3: 'orange',
-    4: 'red',
-    5: '#ed20dc'
-  };
-  // Handle signal brush button activation
-  const signalBrushBtns = Array.from(document.getElementsByClassName('signal-brush-btn'));
-  signalBrushBtns.forEach(btn => {
-    btn.addEventListener('click', function() {
-      // Toggle active state
-      if (activeSignalBrush === btn.dataset.signal) {
-        activeSignalBrush = null;
-        btn.classList.remove('active');
-        map.getContainer().style.cursor = '';
-      } else {
-        activeSignalBrush = btn.dataset.signal;
-        signalBrushBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        map.getContainer().style.cursor = 'crosshair';
-      }
-    });
-  });
-  // Cyclone Signal Brush Size Slider
-  let signalBrushSize = 3;
-  const signalBrushSizeSlider = document.getElementById('signalBrushSizeSlider');
-  const signalBrushSizeValue = document.getElementById('signalBrushSizeValue');
-  if (signalBrushSizeSlider && signalBrushSizeValue) {
-    signalBrushSizeSlider.value = signalBrushSize;
-    signalBrushSizeValue.textContent = signalBrushSize;
-    signalBrushSizeSlider.addEventListener('input', function() {
-      signalBrushSize = parseInt(signalBrushSizeSlider.value);
-      signalBrushSizeValue.textContent = signalBrushSize;
-    });
-  }
-  // Drawing logic
-  map.on('mousedown', function(e) {
-    if (activeSignalBrush && !drawingSignal && typhoonSignalLinesVisible) {
-      drawingSignal = true;
-      // Calculate weight that scales with zoom to maintain consistent geographic coverage
-      const baseWeight = signalBrushSize;
-      const currentZoom = map.getZoom();
-      // More aggressive scaling for larger brush sizes to prevent blob effect
-      const zoomFactor = Math.pow(1.8, currentZoom - 4);
-      const scaledWeight = Math.max(1, baseWeight / zoomFactor);
-      
-      currentSignalLine = L.polyline([e.latlng], {
-        color: signalColors[activeSignalBrush],
-        weight: scaledWeight,
-        opacity: 1,
-        smoothFactor: 1.0,
-        lineCap: 'round',
-        lineJoin: 'round',
-        interactive: false
-      }).addTo(map);
-      typhoonSignalLines.push(currentSignalLine);
-    }
-  });
-  map.on('mousemove', function(e) {
-    if (drawingSignal && currentSignalLine) {
-      // Only add point if inside PH
-      if (phBoundary) {
-        const pt = turf.point([e.latlng.lng, e.latlng.lat]);
-        if (!turf.booleanPointInPolygon(pt, phBoundary)) return;
-      }
-      const latlngs = currentSignalLine.getLatLngs();
-      latlngs.push(e.latlng);
-      currentSignalLine.setLatLngs(latlngs);
-    }
-  });
-  map.on('mouseup', function(e) {
-    if (drawingSignal) {
-      drawingSignal = false;
-      currentSignalLine = null;
-    }
-  });
-  // Prevent map drag when drawing
-  map.on('mousedown', function(e) {
-    if (activeSignalBrush) map.dragging.disable();
-  });
-  map.on('mouseup', function(e) {
-    if (activeSignalBrush) map.dragging.enable();
-  });
-  // Clear all typhoon signal lines
-  const clearTyphoonSignalsBtn = document.getElementById('clearTyphoonSignalsBtn');
-  if (clearTyphoonSignalsBtn) {
-    clearTyphoonSignalsBtn.onclick = function() {
-      typhoonSignalLines.forEach(line => map.removeLayer(line));
-      typhoonSignalLines = [];
-    };
-  }
-
-  // Properly initialize the brush row
-  const typhoonSignalBrushRow = document.getElementById('typhoon-signal-brush-row');
-  // Show/hide typhoon signal brush row and lines based on overlay
-  let typhoonSignalLinesVisible = false;
-  let typhoonSignalLinesHidden = [];
-  map.on('overlayadd', function(e) {
-    if (e.name === 'Cyclone Signals') {
-      // Show legend/source for Cyclone Signals
-      var typhoonSignalLegend = document.getElementById('typhoon-signal-legend-box');
-      var typhoonSignalSourceBox = document.getElementById('typhoon-signal-source-box');
-      if (typhoonSignalLegend) typhoonSignalLegend.style.display = '';
-      if (typhoonSignalSourceBox) typhoonSignalSourceBox.style.display = '';
-      // Restore lines
-      typhoonSignalLinesVisible = true;
-      typhoonSignalLinesHidden.forEach(line => line.addTo(map));
-      typhoonSignalLines = typhoonSignalLines.concat(typhoonSignalLinesHidden);
-      typhoonSignalLinesHidden = [];
-    }
-  });
-  map.on('overlayremove', function(e) {
-    if (e.name === 'Cyclone Signals') {
-      // Hide legend/source for Cyclone Signals
-      var typhoonSignalLegend = document.getElementById('typhoon-signal-legend-box');
-      var typhoonSignalSourceBox = document.getElementById('typhoon-signal-source-box');
-      if (typhoonSignalLegend) typhoonSignalLegend.style.display = 'none';
-      if (typhoonSignalSourceBox) typhoonSignalSourceBox.style.display = 'none';
-      // Remove lines but keep in memory
-      typhoonSignalLinesVisible = false;
-      typhoonSignalLinesHidden = typhoonSignalLines;
-      typhoonSignalLines.forEach(line => map.removeLayer(line));
-      typhoonSignalLines = [];
-    }
-  });
-  // Only add new lines to map if visible
-  map.on('mousedown', function(e) {
-    if (activeSignalBrush && !drawingSignal && typhoonSignalLinesVisible) {
-      drawingSignal = true;
-      currentSignalLine = L.polyline([e.latlng], {
-        color: signalColors[activeSignalBrush],
-        weight: signalBrushSize,
-        opacity: 1,
-        smoothFactor: 1.0,
-        lineCap: 'round',
-        lineJoin: 'round',
-        interactive: false
-      }).addTo(map);
-      typhoonSignalLines.push(currentSignalLine);
-    }
-    });
 } 
